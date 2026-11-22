@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+/* ダークモード固定（docs/01-screen-design.md 7章） */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-zinc-950 text-zinc-100 antialiased;
+}

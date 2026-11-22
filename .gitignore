@@ -1,0 +1,34 @@
+# 依存
+node_modules/
+
+# ビルド成果物
+dist/
+
+# Vite・テスト
+.vite/
+coverage/
+
+# 環境変数（秘密情報を含みうる。このプロジェクトでは使わない）
+.env
+.env.*
+
+# ログ
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# エディタ（推奨拡張だけは共有する）
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Cloudflare
+.wrangler/
+.dev.vars
+
+# TypeScript
+*.tsbuildinfo
