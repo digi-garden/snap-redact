@@ -182,7 +182,7 @@
 
 | 項目 | 内容 |
 | :--- | :--- |
-| 作るもの | brand-assets の取り込み（ロゴ・favicon・フッター）、`ErrorBoundary`、フォーカスの見た目、README（概要・使い方・確かめ方の手順・CSP の説明・ライセンス） |
+| 作るもの | brand-assets の取り込み（ロゴ・favicon・フッター）、第三者ライセンスの配信（`/snap-redact/third-party-licenses/`、既存2作と同じ方式。04 の 2.3.1）、`ErrorBoundary`、フォーカスの見た目、README（概要・使い方・確かめ方の手順・CSP の説明・ライセンス） |
 | 手動確認 | MT-24、MT-24-2、MT-25、MT-26 |
 
 #### S13・S14 公開前セルフチェックと公開

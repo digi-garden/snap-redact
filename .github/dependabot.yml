@@ -1,0 +1,30 @@
+# 設計：docs/05-devenv-cicd.md 5.2、docs/04-security-design.md 6章
+# 更新の PR も CI（成果物の検査を含む）を通ってからマージする。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # 開発用の依存は1つの PR にまとめる
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      # 実行時の依存（react / react-dom）は一緒に上げる
+      react:
+        patterns: [react, react-dom, '@types/react', '@types/react-dom']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Tokyo
+    commit-message:
+      prefix: chore

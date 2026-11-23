@@ -49,6 +49,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      # 依存ライブラリを含めた最終成果物を検査する（docs/04 の 4章）
+      - name: Check build output
+        run: npm run check:dist
+
   secrets:
     name: secrets
     runs-on: ubuntu-latest

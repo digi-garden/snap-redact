@@ -1,0 +1,13 @@
+# Cloudflare Pages のレスポンスヘッダー（docs/04-security-design.md 2章）
+# ビルド後に scripts/copy-deploy-files.mjs が dist/_headers へコピーする。
+# アプリ本体は dist/snap-redact/ にあるので、本番でもプレビュー URL でもパスは /snap-redact/ になる。
+# no-transform：Cloudflare 側でページを書き換える機能（スクリプトの差し込み等）を抑える（Mask & Unmask と同じ）
+/snap-redact/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; media-src 'none'; worker-src 'none'; frame-src 'none'; child-src 'none'; object-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-read=()
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

@@ -10,14 +10,15 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-deploy-files.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "lint": "eslint . --max-warnings 0 --report-unused-disable-directives",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build"
+    "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run check:dist",
+    "check:dist": "node scripts/check-dist.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

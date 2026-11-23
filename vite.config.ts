@@ -1,6 +1,14 @@
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
+import { parseHeaders } from './scripts/lib/headers.mjs';
+
+// vite preview にも本番と同じヘッダー（CSP など）を付ける。値は deploy/_headers だけに持つ（05 の 2.1）
+const previewHeaders =
+  parseHeaders(readFileSync('deploy/_headers', 'utf8')).find(
+    (rule) => rule.path === '/snap-redact/*',
+  )?.headers ?? {};
 
 // 設計：docs/05-devenv-cicd.md 3章
 export default defineConfig({
@@ -18,6 +26,9 @@ export default defineConfig({
     // 対応ブラウザは最新版のみ
     target: 'es2022',
     modulePreload: { polyfill: false },
+  },
+  preview: {
+    headers: previewHeaders,
   },
   test: {
     environment: 'jsdom',
