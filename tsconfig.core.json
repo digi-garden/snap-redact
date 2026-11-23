@@ -1,0 +1,11 @@
+{
+  "//": "src/lib/core は DOM に依存しない純粋な処理だけを置く（docs/03-architecture.md 4章）。DOM の型を使うとここでエラーになる。",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": [],
+    "jsx": "preserve"
+  },
+  "include": ["src/lib/core"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
+}

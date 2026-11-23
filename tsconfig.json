@@ -1,0 +1,4 @@
+{
+  "//": "エディタ用。型チェックは npm run typecheck で tsconfig.app / core / node の3つを個別に実行する（docs/05-devenv-cicd.md 4章）。",
+  "extends": "./tsconfig.app.json"
+}
