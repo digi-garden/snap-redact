@@ -60,7 +60,14 @@ const forbidImports = (groups, message) => ({
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'docs/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      'docs/**',
+      // 禁止ルールのテスト用ファイル（scripts/eslint-rules.test.mjs が ignore を無効にして検査する）
+      'src/test/eslint-forbidden/**',
+    ],
   },
 
   // 共通

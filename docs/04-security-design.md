@@ -53,6 +53,7 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-read=()
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 ```
 
 * このファイルはリポジトリでは `deploy/_headers` に置き、ビルド後に `dist/` の直下（`dist/_headers`）へコピーする（`public/` に置くと `dist/snap-redact/` にコピーされて効かないため）。アプリ本体は `dist/snap-redact/` に出力するので、パス `/snap-redact/*` は本番でもプレビュー URL でも同じになる（05 の 3章・6.1）
@@ -80,6 +81,19 @@
 | `X-Content-Type-Options: nosniff` | ファイルの種類の推測による誤解釈を防ぐ |
 | `Permissions-Policy` | 使わない機能を閉じる。`clipboard-read=()` で読み取り API も閉じる（貼り付けは `paste` イベントで行うので影響しない。書き込みは閉じない） |
 | `Cross-Origin-Opener-Policy`・`Cross-Origin-Resource-Policy` | 他サイトのウィンドウ・ページからの参照を切る |
+| `Cache-Control: … no-transform` | Cloudflare など途中の経路でページを書き換えさせない（T3）。Mask & Unmask と同じ値 |
+
+### 2.3.1 既存2作との違い（S2 で突き合わせ）
+
+| 項目 | Context-Packer・Mask & Unmask | Snap-Redact | 理由 |
+| :--- | :--- | :--- | :--- |
+| パス | `/*` | `/snap-redact/*` | 成果物を `dist/snap-redact/` に出すため（05 の 6.1） |
+| `default-src` | `'self'` | `'none'` | 明示していない種類はすべて禁止から始める |
+| `img-src` | `'self' data:` | `'self'` | ユーザーの画像は Canvas で扱い、`data:` を使わない |
+| `worker-src` | `'self'`（Context-Packer） | `'none'` | Web Worker を使わない |
+| 追加したヘッダー | ― | `X-Frame-Options`、`Cross-Origin-*`、`Permissions-Policy` の `clipboard-read=()` | 使わない機能を閉じる |
+| ソースマップ | 本番に含めない（Context-Packer の検査で禁止） | 含める | Public リポジトリなので隠す理由がなく、利用者がコードを確かめやすい（05 の 3章） |
+| 第三者ライセンス | `/<ツール名>/third-party-licenses/` で配信 | **S12 で同様に用意する** | React などの MIT ライセンスの表示義務を満たすため |
 
 * `upgrade-insecure-requests` は入れない。`http://` の参照は `check-dist.mjs`（4章）が CI で検出して失敗させるため、効く場面がほとんどない。入れないことで、本番と手元（`vite preview`）の CSP を同じにできる
 
@@ -243,6 +257,6 @@ const restrictedSyntax = [
 
 | # | 内容 | いつ |
 | :--- | :--- | :--- |
-| 1 | Context-Packer の `_headers` との差分（本書は `img-src` を絞り、ヘッダーをいくつか追加している） | 初回の実装フェーズ |
+| 1 | ~~Context-Packer の `_headers` との差分~~ → S2 で解消（2.3.1） | ― |
 | 2 | 既存2作の配信方式が 05 の 6.1 と異なる場合の、`_headers` のパスの見直し | 初回の実装フェーズ |
 | 3 | Cloudflare のドメイン設定の現状（5章） | 初回のデプロイ前 |
