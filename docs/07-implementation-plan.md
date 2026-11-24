@@ -63,7 +63,7 @@
 | P5 出力 | S11 | copyImage、downloadImage、`Ctrl+C`、EXPORTED、トースト、Safari・Firefox での確認 | コピーとダウンロードができ、Slack・Qiita に貼れる |
 | P6 仕上げ | S12 | brand-assets（ロゴ・favicon・フッター）、ErrorBoundary、キーボード操作とフォーカス、README（確かめ方の手順） | 公開できる見た目と README がそろう |
 | | S13 | 公開前セルフチェック（前半：Windows の Chrome・Edge・Firefox） | `docs/release-checklist-v0.1.0.md` の前半 |
-| | S14 | 公開前セルフチェック（後半：Mac の Safari、スマホ）、指摘の修正、本番デプロイ、公開 URL での再確認、タグ `v0.1.0` | **公開** |
+| | S14 | 公開前セルフチェック（後半：Mac の Safari、スマホ）、指摘の修正、ルーターの本番で `SNAP_REDACT_ORIGIN` を有効化、本番デプロイ、公開 URL での再確認、タグ `v0.1.0` | **公開** |
 | P7 記事 | S15 | Qiita・Zenn の記事（下書きは Claude、利用者が仕上げて投稿） | 記事の公開 |
 
 * 合計 15 セッション（約 22.5 時間）。要件定義・基本設計にかかった時間と合わせると、予算（20〜30 時間）の上限付近になる。超えそうな場合の削り方は 5章
@@ -96,6 +96,7 @@
 
 | 項目 | 内容 |
 | :--- | :--- |
+| 状態 | **完了（2026-11-24）**。ルーターの PR #7（振り分けの追加、`DISABLED`）・#8（ステージングだけ有効化） |
 | 作業 | 既存2作の配信方式の確認（05 の 6.1）→ 必要なら 04・05 を更新、Cloudflare Pages の連携（利用者）、Cloudflare のスクリプト差し込み機能の確認（04 の 5章） |
 | 手動確認 | プレビュー URL の `/snap-redact/` で CSP が付いている。Console で `fetch` がブロックされる（MT-22 の先取り） |
 | フェーズ末 | P1 のレビュー（ESLint・CSP・CI の設定を重点に） |
