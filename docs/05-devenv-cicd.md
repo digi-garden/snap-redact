@@ -100,11 +100,12 @@
 | 項目 | 内容 |
 | :--- | :--- |
 | 連携 | Cloudflare Pages と GitHub リポジトリを連携する |
-| ビルドコマンド | `npm ci && npm run build` |
+| ビルドコマンド | `npm run build`（依存は Pages が lockfile から自動で入れる） |
 | 出力先 | `dist`（アプリ本体は `dist/snap-redact/`、`_headers`・`_redirects` は `dist/` 直下） |
 | 本番 | `main` へのマージで自動デプロイ |
 | プレビュー | PR ごとにプレビュー URL が発行される。手動確認は `https://<プレビューのホスト>/snap-redact/` で行う（本番と同じパス・同じヘッダー） |
-| 環境変数 | なし（秘密情報を使わない） |
+| 環境変数 | なし（秘密情報を使わない）。Node は `.nvmrc` の 24 が使われる |
+| プロジェクト名・URL | `snap-redact`・`https://snap-redact.pages.dev`（2026-11-24 作成） |
 
 ### 6.1 サブパス `/snap-redact/` での配信
 
@@ -119,7 +120,13 @@
 * `base`・出力先・`_headers` のパスがすべて `/snap-redact/` で一致するので、プレビュー URL で本番と同じ条件（CSP を含む）を確かめられる
 * circle-note.com 側の振り分けが、Pages の応答ヘッダー（CSP など）を消したり書き換えたりしないことを確かめる（06 の MT-22 を公開 URL で行う）
 
-**既存2作との突き合わせ（未決）**：既存2作が別の方式（例：1つの Pages プロジェクトに全ツールをまとめる、振り分け側でパスを書き換える）を使っている場合は、それに合わせて本書と 04 の 2.1 を更新する。どの方式でも「プレビュー URL で本番と同じパスとヘッダーになること」を条件にする。
+**既存2作との突き合わせ（S3 で解消）**：circle-note.com はルーター Worker（`digi-garden/circle-note-router`）が、パスを変えずに（`rewrite: 'preserve'`）ツールごとの Pages へ振り分ける。Mask & Unmask も `/mask-unmask/` の下に出力する同じ方式で、本書の方式と一致している。
+
+| 段階 | ルーターの設定 | 確認結果（2026-11-24） |
+| :--- | :--- | :--- |
+| Pages 単体 | ― | `/` → `/snap-redact/` の移動、CSP の `connect-src 'none'` が効くこと、通信がページ本体・JS・CSS だけであること |
+| ステージング（`staging.circle-note.com`） | `SNAP_REDACT_ORIGIN=https://snap-redact.pages.dev` | `/snap-redact` → `/snap-redact/` の 308、ルーター経由でも CSP が届くこと、Cloudflare による差し込みがないこと |
+| 本番（`circle-note.com`） | `DISABLED`（503・no-store） | v0.1.0 の公開時に有効化する（S14） |
 
 ## 7. ブランチ・コミット・リリース
 
@@ -246,6 +253,6 @@
 
 | # | 内容 | いつ |
 | :--- | :--- | :--- |
-| 1 | 既存2作の配信方式と、本書の方式（6.1）との差 | 初回の実装フェーズ |
+| 1 | ~~既存2作の配信方式と、本書の方式（6.1）との差~~ → S3 で解消（6.1） | ― |
 | 2 | 既存2作の Prettier・ESLint 設定との差分 | 初回の実装フェーズ |
 | 3 | `vite preview` に `deploy/_headers` の内容を付ける実装方法（2.1） | 初回の実装フェーズ |
