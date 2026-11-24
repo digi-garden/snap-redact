@@ -4,7 +4,10 @@
 export const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400';
 
-const buttonBase = `inline-flex items-center gap-2 rounded-md text-sm transition-colors disabled:cursor-not-allowed ${focusRing}`;
+/** スマホ（幅 640px 未満、またはタッチ操作が主）ではボタンの高さを 44px 以上にする（docs/01 の 8章） */
+const touchTarget = 'max-sm:min-h-11 pointer-coarse:min-h-11';
+
+const buttonBase = `inline-flex items-center gap-2 rounded-md text-sm transition-colors disabled:cursor-not-allowed ${touchTarget} ${focusRing}`;
 
 /** 主ボタン：アクセントカラーで塗る。文字は zinc-950（コントラストのため） */
 export const primaryButton = `${buttonBase} bg-emerald-500 px-[18px] py-2.5 font-semibold text-zinc-950 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-600`;
