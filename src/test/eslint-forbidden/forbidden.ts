@@ -14,12 +14,16 @@ export function forbidden(url: string, data: string): void {
   new WebSocket(url); // expect: no-restricted-globals
   new EventSource(url); // expect: no-restricted-globals
   navigator.sendBeacon(url, data); // expect: no-restricted-properties
+  window.navigator.sendBeacon(url, data); // expect: no-restricted-properties
 
   // 保存
   localStorage.setItem('k', data); // expect: no-restricted-globals
   sessionStorage.setItem('k', data); // expect: no-restricted-globals
   void window.indexedDB; // expect: no-restricted-properties
   void caches; // expect: no-restricted-globals
+  document.cookie = data; // expect: no-restricted-properties
+  void cookieStore; // expect: no-restricted-globals
+  void (document as unknown as Record<string, unknown>)['cookie']; // expect: no-restricted-syntax
 
   // 遷移
   location.href = url; // expect: no-restricted-globals
@@ -30,9 +34,12 @@ export function forbidden(url: string, data: string): void {
   open(url); // expect: no-restricted-globals
   globalThis.open(url); // expect: no-restricted-properties
   window.open(url); // expect: no-restricted-properties
+  void navigation; // expect: no-restricted-globals
+  void window.navigation; // expect: no-restricted-properties
 
   // その他
   eval(data); // expect: no-eval
   new Function(data); // expect: no-new-func
   void navigator.serviceWorker; // expect: no-restricted-properties
+  void globalThis.navigator.serviceWorker; // expect: no-restricted-properties
 }

@@ -62,3 +62,75 @@ describe('ESLint の禁止ルール', async () => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// レイヤーの依存ルール（docs/03-architecture.md 4章）
+// ファイルの置き場所で効くルールなので、実在しないパスを filePath に指定して lintText で確かめる。
+// 型情報が要らないよう、依存ルールだけを読み込んだ ESLint を使う。
+// ---------------------------------------------------------------------------
+describe('レイヤーの依存ルール', async () => {
+  const { layerConfigs } = await import('../eslint.config.js');
+  const { default: tseslint } = await import('typescript-eslint');
+  const eslint = new ESLint({
+    cwd: root,
+    overrideConfigFile: true,
+    overrideConfig: [
+      { files: ['**/*.{ts,tsx}'], languageOptions: { parser: tseslint.parser } },
+      ...layerConfigs,
+    ],
+  });
+
+  /**
+   * @param {string} file src からの相対パス
+   * @param {string} specifier import する文字列
+   */
+  async function isBlocked(file, specifier) {
+    const [result] = await eslint.lintText(`import '${specifier}';\n`, {
+      filePath: join(root, 'src', file),
+    });
+    return (result?.messages ?? []).some((m) => m.ruleId === 'no-restricted-imports');
+  }
+
+  /** @type {Array<[string, string, boolean]>} [ファイル, import, 止めるか] */
+  const cases = [
+    // lib/core：React・ほかのレイヤーを禁止
+    ['lib/core/a.ts', 'react', true],
+    ['lib/core/a.ts', 'react/jsx-runtime', true],
+    ['lib/core/a.ts', 'react-dom/client', true],
+    ['lib/core/a.ts', '../canvas/applyOp', true],
+    ['lib/core/a.ts', '../browser/pickImage', true],
+    ['lib/core/a.ts', '../../hooks/useToast', true],
+    ['lib/core/a.ts', '../../components/Toast', true],
+    ['lib/core/a.tsx', '../canvas/applyOp', true],
+    ['lib/core/a.ts', './geometry', false],
+    ['lib/core/a.ts', './types', false],
+    // lib/canvas：browser・hooks・components・React を禁止、core は可
+    ['lib/canvas/a.ts', '../browser/copyImage', true],
+    ['lib/canvas/a.ts', 'react', true],
+    ['lib/canvas/a.ts', '../core/types', false],
+    ['lib/canvas/a.ts', './applyOp', false],
+    // lib/browser：canvas・hooks・components・React を禁止、core は可
+    ['lib/browser/a.ts', '../canvas/prepareCanvas', true],
+    ['lib/browser/a.ts', '../../hooks/useToast', true],
+    ['lib/browser/a.ts', '../core/limits', false],
+    // hooks：components を禁止、lib は可
+    ['hooks/a.ts', '../components/Toast', true],
+    ['hooks/a.ts', '../lib/canvas/applyOp', false],
+    ['hooks/a.ts', '../lib/browser/copyImage', false],
+    ['hooks/a.ts', 'react', false],
+    // components：lib/canvas・lib/browser を禁止、hooks・lib/core は可
+    ['components/A.tsx', '../lib/canvas/applyOp', true],
+    ['components/A.tsx', '../lib/browser/copyImage', true],
+    ['components/a.ts', '../lib/browser/copyImage', true],
+    ['components/A.tsx', '../hooks/useToast', false],
+    ['components/A.tsx', '../lib/core/types', false],
+    ['components/A.tsx', './CanvasStage', false],
+    ['components/A.tsx', 'react', false],
+  ];
+
+  for (const [file, specifier, blocked] of cases) {
+    it(`${file} で '${specifier}' を${blocked ? '止める' : '止めない'}`, async () => {
+      expect(await isBlocked(file, specifier)).toBe(blocked);
+    });
+  }
+});
