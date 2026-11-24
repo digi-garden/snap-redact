@@ -12,6 +12,13 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    ignore:
+      # typescript-eslint が対応するまで TypeScript のメジャー更新は受けない（S1 で確認：8.73 は <6.1.0）
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # @types/node は実行環境の Node（.nvmrc の 24 LTS）に合わせる。Node の LTS を上げるときに手で上げる
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       # 開発用の依存は1つの PR にまとめる
       dev-dependencies:
