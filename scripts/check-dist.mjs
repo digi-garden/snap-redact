@@ -20,6 +20,9 @@ export const ALLOWED_URLS = [
   /^https:\/\/tailwindcss\.com\/?$/, // Tailwind のライセンスコメント
   /^https:\/\/circle-note\.com(\/|$)/, // フッターのリンク
   /^https:\/\/github\.com\/digi-garden(\/|$)/, // フッター・確認ダイアログのリンク
+  // DL-02 の説明文に表示するコード例 fetch('https://example.com')。例示用に予約されたドメイン（RFC 2606）で、
+  // 実行するのは利用者が Console で試すときだけ（そのとき CSP がブロックすることを見せるためのもの）
+  /^https:\/\/example\.com$/,
 ];
 
 const URL_PATTERN = /(?:https?|wss?):\/\/[^\s"'`<>()\\]+/g;

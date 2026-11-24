@@ -1,0 +1,59 @@
+import { useEffect, useId, useRef, type ReactNode } from 'react';
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  title: ReactNode;
+  /** 開いたときは data-autofocus を付けた要素にフォーカスする（なければブラウザの既定） */
+  children: ReactNode;
+  className?: string;
+};
+
+/**
+ * ダイアログの共通部品（F-13、docs/01 の 4章・9章）。
+ * ブラウザ標準の <dialog> の showModal を使う。背後の操作の無効化、フォーカスの閉じ込め、
+ * Esc での取り消し、閉じた後に元の要素へフォーカスを戻す動きは、ブラウザに任せる。
+ * 背景（ダイアログの外側）をクリックしたときも閉じる。
+ */
+export function Dialog({ open, onClose, title, children, className = '' }: Props) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      // jsdom などの古い環境に showModal がない場合は開くだけにする
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={onClose}
+      onCancel={(event) => {
+        // Esc：ブラウザに閉じさせず、親の状態（open）で閉じる
+        event.preventDefault();
+        onClose();
+      }}
+      onClick={(event) => {
+        // ダイアログ本体の外側（::backdrop）のクリックは、<dialog> 要素自体へのクリックとして届く
+        if (event.target === event.currentTarget) onClose();
+      }}
+      className={`m-auto max-h-[90dvh] w-[min(640px,calc(100vw-32px))] overflow-auto rounded-xl border border-zinc-800 bg-zinc-900 p-0 text-zinc-100 shadow-2xl backdrop:bg-black/70 ${className}`}
+    >
+      <div className="flex flex-col gap-4 p-6">
+        <h2 id={titleId} className="flex items-center gap-2 text-[17px] font-bold">
+          {title}
+        </h2>
+        {children}
+      </div>
+    </dialog>
+  );
+}
