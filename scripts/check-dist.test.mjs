@@ -129,6 +129,42 @@ describe('checkDist', () => {
     expect(checkDist(dist).join()).toMatch(/data: URI/);
   });
 
+  it('WebSocket の URL があると失敗する', () => {
+    makeGoodDist();
+    put('snap-redact/assets/ws.js', 'new WebSocket("wss://evil.example.com/socket")');
+    expect(checkDist(dist).join()).toMatch(/wss:\/\/evil\.example\.com/);
+  });
+
+  it('react.dev のエラー URL に余計なパスが続く場合は許可しない', () => {
+    makeGoodDist();
+    put('snap-redact/assets/x.js', 'const a="https://react.dev/errors/1/../../evil";');
+    expect(checkDist(dist).join()).toMatch(/許可していない URL https:\/\/react\.dev/);
+  });
+
+  it('SVG に <script> があると失敗する', () => {
+    makeGoodDist();
+    put(
+      'snap-redact/favicon.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+    );
+    expect(checkDist(dist).join()).toMatch(/SVG に <script>/);
+  });
+
+  it('SVG に外部の URL があると失敗する', () => {
+    makeGoodDist();
+    put(
+      'snap-redact/favicon.svg',
+      '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example.com/a.png"/></svg>',
+    );
+    expect(checkDist(dist).join()).toMatch(/evil\.example\.com/);
+  });
+
+  it('名前空間だけの SVG は合格する', () => {
+    makeGoodDist();
+    put('snap-redact/favicon.svg', '<svg xmlns="http://www.w3.org/2000/svg"><circle r="1"/></svg>');
+    expect(checkDist(dist)).toEqual([]);
+  });
+
   it('ソースマップ（.map）は検査の対象外', () => {
     makeGoodDist();
     put('snap-redact/assets/index.js.map', '{"sourcesContent":["// see https://example.com"]}');

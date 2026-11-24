@@ -124,7 +124,7 @@ components ──▶ hooks ──▶ lib/browser ──▶ lib/core
 | `hooks` | `lib/*`、React | `components` |
 | `components` | `hooks`、`lib/core`（型と selectors）、`messages.ts` | `lib/canvas`、`lib/browser` を直接呼ぶこと |
 
-* このルールは ESLint の `no-restricted-imports`（ディレクトリ単位）で強制する。違反は CI で失敗する
+* このルールは ESLint の `no-restricted-imports` で強制する。違反は CI で失敗する。import の文字列はファイルの解決後のパスではないため、`../canvas/x` のような相対パスや `react/jsx-runtime` のようなサブパスも捕まえられるよう、パスの区切り単位の正規表現で判定する（P1 レビューで修正）。ルールそのものの正しさは `scripts/eslint-rules.test.mjs` で確かめる
 * `lib/core` は tsconfig を分けて `lib: ["ES2022"]`（DOM なし）にし、DOM の型を使うとコンパイルエラーになるようにする
 * 画像の画素に触れてよいのは `lib/canvas` だけ。`lib/browser` は Blob と ImageBitmap を受け渡すだけで、画素を読まない
 

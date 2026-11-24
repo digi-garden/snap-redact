@@ -1,9 +1,10 @@
 // ビルド成果物の検査（docs/04-security-design.md 4章）
 // 依存ライブラリを含めた最終成果物を見て、次のどれかに当てはまれば失敗させる。
 //   1. dist/_headers がない、または /snap-redact/* の CSP に connect-src 'none' がない。dist/snap-redact/index.html がない
-//   2. JS・CSS・HTML に、許可していない http:// / https:// の URL がある
-//   3. HTML にインラインの <script>（src のないもの）や <style> がある
-//   4. CSS・HTML に data: URI の埋め込みがある
+//   2. JS・CSS・HTML・SVG に、許可していない http(s):// / ws(s):// の URL がある
+//   3. HTML・SVG に <script> がある（HTML は src のないインラインのもの）。HTML にインラインの <style> がある
+//   4. CSS・HTML・SVG に data: URI の埋め込みがある
+// プロトコル相対の URL（//example.com）は、JS のコメント（//）と区別できず誤検知が多いため対象外。実行時は CSP が止める。
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,13 +16,13 @@ import { parseHeaders } from './lib/headers.mjs';
  */
 export const ALLOWED_URLS = [
   /^http:\/\/www\.w3\.org\/(1998\/Math\/MathML|1999\/xlink|1999\/xhtml|2000\/svg|XML\/1998\/namespace)$/, // 名前空間の識別子
-  /^https:\/\/react\.dev\/errors\/?/, // React の本番ビルドのエラーメッセージ
+  /^https:\/\/react\.dev\/errors(\/\d+)?\/?$/, // React の本番ビルドのエラーメッセージ
   /^https:\/\/tailwindcss\.com\/?$/, // Tailwind のライセンスコメント
   /^https:\/\/circle-note\.com(\/|$)/, // フッターのリンク
   /^https:\/\/github\.com\/digi-garden(\/|$)/, // フッター・確認ダイアログのリンク
 ];
 
-const URL_PATTERN = /https?:\/\/[^\s"'`<>()\\]+/g;
+const URL_PATTERN = /(?:https?|wss?):\/\/[^\s"'`<>()\\]+/g;
 
 /**
  * @param {string} dir
@@ -61,7 +62,7 @@ export function checkDist(distDir) {
   }
 
   if (!existsSync(distDir)) return errors;
-  const files = walk(distDir).filter((f) => /\.(js|mjs|css|html)$/.test(f));
+  const files = walk(distDir).filter((f) => /\.(js|mjs|css|html|svg)$/.test(f));
 
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
@@ -81,6 +82,13 @@ export function checkDist(distDir) {
       if (/<style\b/i.test(text)) errors.push(`${rel(file)}: インラインの <style> があります`);
       // 4. data: URI
       if (/\b(src|href)\s*=\s*["']?\s*data:/i.test(text)) {
+        errors.push(`${rel(file)}: data: URI の埋め込みがあります`);
+      }
+    }
+    if (file.endsWith('.svg')) {
+      // favicon などの SVG はスクリプトを持たない（03 の 3章 public/favicon.svg）
+      if (/<script\b/i.test(text)) errors.push(`${rel(file)}: SVG に <script> があります`);
+      if (/\b(href|xlink:href)\s*=\s*["']?\s*data:/i.test(text)) {
         errors.push(`${rel(file)}: data: URI の埋め込みがあります`);
       }
     }

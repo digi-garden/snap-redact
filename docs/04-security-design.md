@@ -3,6 +3,7 @@
 最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（特に 2章 柱A、6.1） ／ 関連：`docs/03-architecture.md` v1.1、`docs/05-devenv-cicd.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.2（2026-11-24）：P1 のフェーズレビューを反映（`sendBeacon`・`serviceWorker` をどのオブジェクト経由でも禁止、`cookie`・`cookieStore`・`navigation` を追加、成果物検査に `ws(s)://` と SVG を追加、文字列参照の対象を拡大）
 * v1.1（2026-11-22）：外部レビュー2回目と再確認を反映（成果物検査の対象パスを含む。ESLint の禁止を参照そのものの禁止に変更、`upgrade-insecure-requests` の削除、`_headers` の配置、ESLint の限界の明記）
 
 基本設計の資料 4/6。画像を外に出さないこと（柱A）を、どの仕組みで、何段で守るかを定める。黒塗りの画素の安全性（端の整数化・モザイクの `clearRect`）は 02 機能設計書で扱っている。
@@ -118,8 +119,8 @@ const NAV = 'ページ遷移による送信を防ぐ（T8）';
 
 const bannedGlobals = [
   ['fetch', NET], ['XMLHttpRequest', NET], ['WebSocket', NET], ['EventSource', NET],
-  ['localStorage', STORE], ['sessionStorage', STORE], ['indexedDB', STORE], ['caches', STORE],
-  ['location', NAV], ['open', NAV],
+  ['localStorage', STORE], ['sessionStorage', STORE], ['indexedDB', STORE], ['caches', STORE], ['cookieStore', STORE],
+  ['location', NAV], ['open', NAV], ['navigation', NAV],
 ];
 // 同じ名前を window. / self. / globalThis. / document. 経由で参照することも禁止する
 const globalObjects = ['window', 'self', 'globalThis', 'document'];
@@ -134,8 +135,11 @@ export default [
       'no-restricted-properties': ['error',
         ...globalObjects.flatMap((object) =>
           bannedGlobals.map(([property, message]) => ({ object, property, message }))),
-        { object: 'navigator', property: 'sendBeacon', message: NET },
-        { object: 'navigator', property: 'serviceWorker', message: 'Service Worker は使わない' },
+        // どのオブジェクト経由でも禁止（window.navigator.sendBeacon も捕まえる）
+        { property: 'sendBeacon', message: NET },
+        { property: 'serviceWorker', message: 'Service Worker は使わない' },
+        // Cookie への保存は CSP では止められない（T4）
+        { property: 'cookie', message: STORE },
       ],
       'no-restricted-syntax': ['error', ...restrictedSyntax], // 3.2・3.3 をまとめた1つの配列
     },
@@ -157,7 +161,7 @@ const restrictedSyntax = [
   // 3.2
   { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: 'HTML の直接挿入は禁止' },
   // 3.3：window['fetch'] や window['location'] のような文字列による参照
-  { selector: "MemberExpression[computed=true][property.type='Literal'][property.value=/^(fetch|open|location|sendBeacon|localStorage|sessionStorage|indexedDB|caches)$/]", message: '文字列による参照で禁止ルールを回避しない' },
+  { selector: "MemberExpression[computed=true][property.type='Literal'][property.value=/^(fetch|open|location|navigation|sendBeacon|serviceWorker|localStorage|sessionStorage|indexedDB|caches|cookie|cookieStore|XMLHttpRequest|WebSocket|EventSource)$/]", message: '文字列による参照で禁止ルールを回避しない' },
   // 3.3：リンク先は固定の文字列だけ
   { selector: "JSXAttribute[name.name='href'] > JSXExpressionContainer", message: 'リンク先は固定の文字列だけ（T8）' },
 ];
@@ -185,9 +189,9 @@ const restrictedSyntax = [
 | # | 確認内容 | 理由 |
 | :--- | :--- | :--- |
 | 1 | `dist/_headers` が存在し、`connect-src 'none'` が含まれている。`dist/snap-redact/index.html` が存在する（出力先の設定漏れを検出） | CSP の設定漏れ・書き間違いを防ぐ |
-| 2 | `dist/` の JS・CSS・HTML に、許可した URL 以外の `http://` / `https://` が含まれていない | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
-| 3 | `dist/` 配下のすべての `.html`（本体は `dist/snap-redact/index.html`）にインラインの `<script>`（`src` のないもの）がない | CSP の `script-src 'self'` で動かなくなるのを事前に検出する |
-| 4 | `dist/` に `data:` で始まるファイル埋め込みがない | `img-src 'self'` で表示されなくなるのを防ぐ |
+| 2 | `dist/` の JS・CSS・HTML・SVG に、許可した URL 以外の `http://` / `https://` / `ws://` / `wss://` が含まれていない（プロトコル相対の `//…` は JS のコメントと区別できないため対象外。実行時は CSP が止める） | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
+| 3 | `dist/` 配下のすべての `.html`（本体は `dist/snap-redact/index.html`）にインラインの `<script>`（`src` のないもの）と `<style>` がない。`.svg` に `<script>` がない | CSP の `script-src 'self'` で動かなくなるのを事前に検出する |
+| 4 | CSS・HTML・SVG に `data:` URI の埋め込みがない（JS は文字列として `data:` を含みうるため対象外。実行時は CSP の `img-src 'self'` が止める） | `img-src 'self'` で表示されなくなるのを防ぐ |
 
 * 3.1 の ESLint は自分のソースだけを見るが、こちらは依存ライブラリを含めた最終成果物を見る
 * 依存ライブラリの中に `fetch` という文字列があっても、それだけでは失敗にしない（React 自体が含む場合がある）。実行時は CSP が止める
