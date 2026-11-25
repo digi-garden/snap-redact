@@ -2,7 +2,7 @@ import { messages } from '../messages';
 import { useCopyText } from '../hooks/useCopyText';
 import { Dialog } from './Dialog';
 import { ShieldIcon } from './icons';
-import { focusRing, secondaryButton } from './styles';
+import { focusRing, secondaryButton, touchTarget } from './styles';
 
 type Props = {
   open: boolean;
@@ -11,13 +11,18 @@ type Props = {
 
 /** DL-02：通信をブロックしている仕組みと確かめ方（UI-2、柱A、docs/01 の 4.2） */
 export function VerifyDialog({ open, onClose }: Props) {
-  const { copied, copy } = useCopyText();
+  const { copied, copy, reset } = useCopyText();
   const t = messages.verify;
+  // 閉じたら「コピーしました」の表示を戻す（P2 レビュー #3）
+  const close = () => {
+    reset();
+    onClose();
+  };
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={
         <>
           <ShieldIcon size={20} className="text-emerald-400" />
@@ -43,10 +48,14 @@ export function VerifyDialog({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => void copy(t.fetchCode)}
-                  className={`rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800 ${focusRing}`}
+                  className={`rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs text-zinc-200 hover:bg-zinc-800 ${touchTarget} ${focusRing}`}
                 >
                   {copied ? t.copiedCode : t.copyCode}
                 </button>
+                {/* コピーの完了をスクリーンリーダーに伝える（P2 レビュー #3） */}
+                <span role="status" className="sr-only">
+                  {copied ? t.copiedCode : ''}
+                </span>
               </div>
             )}
           </li>
@@ -65,7 +74,7 @@ export function VerifyDialog({ open, onClose }: Props) {
             {t.sourceLabel}
           </a>
         </span>
-        <button type="button" data-autofocus onClick={onClose} className={secondaryButton}>
+        <button type="button" data-autofocus onClick={close} className={secondaryButton}>
           {t.close}
         </button>
       </div>

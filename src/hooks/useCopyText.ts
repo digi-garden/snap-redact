@@ -18,5 +18,10 @@ export function useCopyText(resetMs = 2000) {
     [resetMs],
   );
 
-  return { copied, copy };
+  const reset = useCallback(() => {
+    window.clearTimeout(timer.current);
+    setCopied(false);
+  }, []);
+
+  return { copied, copy, reset };
 }

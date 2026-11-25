@@ -5,7 +5,7 @@ export const focusRing =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400';
 
 /** スマホ（幅 640px 未満、またはタッチ操作が主）ではボタンの高さを 44px 以上にする（docs/01 の 8章） */
-const touchTarget = 'max-sm:min-h-11 pointer-coarse:min-h-11';
+export const touchTarget = 'max-sm:min-h-11 pointer-coarse:min-h-11';
 
 const buttonBase = `inline-flex items-center gap-2 rounded-md text-sm transition-colors disabled:cursor-not-allowed ${touchTarget} ${focusRing}`;
 
