@@ -14,6 +14,8 @@ type Props = {
  * ブラウザ標準の <dialog> の showModal を使う。背後の操作の無効化、フォーカスの閉じ込め、
  * Esc での取り消し、閉じた後に元の要素へフォーカスを戻す動きは、ブラウザに任せる。
  * 背景（ダイアログの外側）をクリックしたときも閉じる。
+ * onClose を呼ぶのは Esc（cancel）と背景クリックと、子の「閉じる」ボタンだけ。ネイティブの close イベントは
+ * 親が open=false にしたとき（dialog.close()）にも発火するため拾わない（拾うと onClose が2回呼ばれる。P2 レビュー #2）。
  */
 export function Dialog({ open, onClose, title, children, className = '' }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -23,12 +25,13 @@ export function Dialog({ open, onClose, title, children, className = '' }: Props
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      // jsdom などの古い環境に showModal がない場合は開くだけにする
+      // jsdom など showModal / close がない環境では、open 属性だけで開閉する
       if (typeof dialog.showModal === 'function') dialog.showModal();
       else dialog.setAttribute('open', '');
       dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     } else if (!open && dialog.open) {
-      dialog.close();
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
     }
   }, [open]);
 
@@ -36,7 +39,6 @@ export function Dialog({ open, onClose, title, children, className = '' }: Props
     <dialog
       ref={ref}
       aria-labelledby={titleId}
-      onClose={onClose}
       onCancel={(event) => {
         // Esc：ブラウザに閉じさせず、親の状態（open）で閉じる
         event.preventDefault();
