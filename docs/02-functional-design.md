@@ -3,6 +3,7 @@
 最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.2（2026-11-25）：S5 の実装に合わせ、`EditorState` を型引数 `TImage` で元画像を受け取る形に変更
 * v1.1（2026-11-22）：外部レビュー1回目を反映（透過画像へのモザイク、極小矩形の判定、読み込みの世代番号、描画できるかの事前確認、ドラッグ中の操作の無視、選択枠の描き方、Canvas の枠線、縮小時の補間品質、ドロップ表示の回数方式、`getAsFile()` / `getSelection()` の null）
 
 基本設計の資料 2/6。画面の裏で「どんな状態を持ち、何をきっかけに、どう処理するか」を定める。ファイル構成とモジュールの責務は「03 アーキテクチャ設計書」、CSP などは「04 セキュリティ設計書」で扱う。
@@ -43,12 +44,13 @@ type Op =
   | { kind: 'fill'; rect: Rect }
   | { kind: 'mosaic'; rect: Rect; blockSize: number };
 
-type EditorState =
+// lib/core は DOM の型を使えない（03 の 4章）ため、元画像の型は型引数で受け取る。アプリでは EditorState<ImageBitmap>
+type EditorState<TImage> =
   | { status: 'empty'; mode: Mode }
   | {
       status: 'loaded';
       mode: Mode;
-      base: ImageBitmap;   // 元画像（読み込み時のまま変更しない）
+      base: TImage;        // 元画像（読み込み時のまま変更しない）
       width: number;       // base の幅（原寸）
       height: number;      // base の高さ（原寸）
       ops: Op[];           // 操作の履歴（古い順）
@@ -70,6 +72,7 @@ type EditorState =
 | `EXPORTED` | F-10, F-11 の成功時 | 無視 | unsaved = false |
 | `SET_MODE { mode }` | F-07 | mode を変更 | mode を変更 |
 
+* 状態が変わらないアクション（empty での `ADD_OP` など、同じ mode の `SET_MODE`、保存済みでの `EXPORTED`）は、同じオブジェクトを返す（React の再描画を避ける。S5 で実装）
 * reducer は「新しい状態」だけを返す。前の `base` を `close()` するのは、状態が変わったあとの処理（3.4 手順6、3.10）で行う
 
 ### 2.3 画面だけの状態（reducer の外）
