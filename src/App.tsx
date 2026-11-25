@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 import { ActionBar } from './components/ActionBar';
 import { CanvasStage } from './components/CanvasStage';
 import { EmptyState } from './components/EmptyState';
@@ -9,16 +9,20 @@ import { MosaicNotice } from './components/MosaicNotice';
 import { Toolbar } from './components/Toolbar';
 import { VerifyDialog } from './components/VerifyDialog';
 import { usePlatform } from './hooks/usePlatform';
-import type { Mode } from './lib/core/types';
+import { editorReducer, initialEditorState } from './lib/core/editorReducer';
+import { canExport, canUndo } from './lib/core/selectors';
 
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
- * S4 は骨組みだけ：画像の読み込み・編集・出力は S5 以降でつなぐ。
- * mode は S5 で editorReducer に移す。
+ * 編集状態は editorReducer で持つ（docs/02 の 2.2）。画像の読み込み・編集・出力は S6 以降でつなぐ。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
-  const [mode, setMode] = useState<Mode>('fill');
+  const [editor, dispatch] = useReducer(
+    editorReducer<ImageBitmap>,
+    undefined,
+    initialEditorState<ImageBitmap>,
+  );
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [mobileNoticeClosed, setMobileNoticeClosed] = useState(false);
 
@@ -31,21 +35,21 @@ export function App() {
         <MobileNotice onClose={() => setMobileNoticeClosed(true)} />
       )}
       <Toolbar
-        mode={mode}
-        onModeChange={setMode}
-        canUndo={false}
-        canClear={false}
-        onUndo={noop}
-        onClear={noop}
+        mode={editor.mode}
+        onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
+        canUndo={canUndo(editor)}
+        canClear={canExport(editor)}
+        onUndo={() => dispatch({ type: 'UNDO' })}
+        onClear={() => dispatch({ type: 'CLEAR' })}
         keys={keys}
         showKeyHints={!mobileLike}
       />
-      {mode === 'mosaic' && <MosaicNotice />}
+      {editor.mode === 'mosaic' && <MosaicNotice />}
       <CanvasStage>
         <EmptyState keys={keys} mobileLike={mobileLike} onFile={noop} />
       </CanvasStage>
       <ActionBar
-        canExport={false}
+        canExport={canExport(editor)}
         info={null}
         onCopy={noop}
         onDownload={noop}

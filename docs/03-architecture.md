@@ -78,7 +78,7 @@ snap-redact/
 │  │  └─ useToast.ts           // F-12
 │  ├─ lib/
 │  │  ├─ core/                 // 純粋な処理（DOM に触れない）
-│  │  │  ├─ types.ts           // Mode, Rect, Op, EditorState, Point
+│  │  │  ├─ types.ts           // Mode, Rect, Op, Point, EditorState<TImage>, EditorAction<TImage>
 │  │  │  ├─ editorReducer.ts   // 02 の 2.2
 │  │  │  ├─ selectors.ts       // 02 の 2.4（canUndo など）
 │  │  │  ├─ geometry.ts        // toImagePoint, toRect

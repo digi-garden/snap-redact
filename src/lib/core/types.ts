@@ -25,3 +25,12 @@ export type EditorState<TImage> =
       /** 最後のコピー／ダウンロード以降に操作があるか */
       unsaved: boolean;
     };
+
+/** 状態遷移のアクション（docs/02 の 2.2） */
+export type EditorAction<TImage> =
+  | { type: 'LOAD'; base: TImage; width: number; height: number }
+  | { type: 'ADD_OP'; op: Op }
+  | { type: 'UNDO' }
+  | { type: 'CLEAR' }
+  | { type: 'EXPORTED' }
+  | { type: 'SET_MODE'; mode: Mode };
