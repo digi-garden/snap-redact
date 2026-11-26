@@ -157,6 +157,45 @@ describe('useImageLoader', () => {
     expect([c.width, c.height]).toEqual([0, 0]);
   });
 
+  it('デコード中にクリア → 後から届いた画像は close() し、empty のまま', async () => {
+    const b = bitmap(10, 10);
+    const slow = deferred<ImageBitmap | null>();
+    const { result, showToast } = setup({ decode: () => slow.promise, prepare: () => canvasEl() });
+    let loading!: Promise<void>;
+    act(() => {
+      loading = result.current.load(png());
+    });
+    act(() => result.current.clear());
+    await act(async () => {
+      slow.resolve(b);
+      await loading;
+    });
+    expect(result.current.editor.status).toBe('empty');
+    expect(result.current.canvas).toBe(null);
+    expect(b.close).toHaveBeenCalledTimes(1);
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
+  it('デコード失敗が届く前に別の画像に追い越された → TS-03 は出さない', async () => {
+    const b = bitmap(20, 20);
+    const slow = deferred<ImageBitmap | null>();
+    const decode = vi.fn((file: Blob) =>
+      (file as File).name === 'a.png' ? slow.promise : Promise.resolve(b as ImageBitmap),
+    );
+    const { result, showToast } = setup({ decode, prepare: () => canvasEl() });
+    let first!: Promise<void>;
+    act(() => {
+      first = result.current.load(png('a.png'));
+    });
+    await act(() => result.current.load(png('b.png')));
+    await act(async () => {
+      slow.resolve(null);
+      await first;
+    });
+    expect(result.current.editor).toMatchObject({ status: 'loaded', base: b });
+    expect(showToast).not.toHaveBeenCalled();
+  });
+
   it('画面を閉じる（アンマウント）と元画像を close() する', async () => {
     const b = bitmap(10, 10);
     const { result, unmount } = setup({
@@ -235,6 +274,28 @@ describe('useImageLoader', () => {
         result.current.cancelReplace();
       });
       expect(b.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('クリアの直後（再描画の前）に読み込みが終わる → 確認を出さずに読み込み、前の画像の close() は1回だけ', async () => {
+      const { result, a, b } = await editedSetup();
+      await act(async () => {
+        result.current.clear();
+        await result.current.load(png('b.png'));
+      });
+      expect(result.current.replacePending).toBe(false);
+      expect(result.current.editor).toMatchObject({ status: 'loaded', base: b, ops: [] });
+      expect(a.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('差し替え待ちのときにクリア → 差し替え待ちの画像も close()・Canvas を解放', async () => {
+      const { result, a, b, cb } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      act(() => result.current.clear());
+      expect(result.current.replacePending).toBe(false);
+      expect(result.current.editor.status).toBe('empty');
+      expect(a.close).toHaveBeenCalledTimes(1);
+      expect(b.close).toHaveBeenCalledTimes(1);
+      expect([cb.width, cb.height]).toEqual([0, 0]);
     });
 
     it('差し替え待ちのままアンマウント → 差し替え待ちの画像も close()', async () => {
