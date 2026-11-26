@@ -30,7 +30,7 @@ function setup(deps: LoaderDeps) {
       initialEditorState<ImageBitmap>,
     );
     const loader = useImageLoader({ editor, dispatch, showToast, deps });
-    return { editor, ...loader };
+    return { editor, dispatch, ...loader };
   });
   return { ...hook, showToast };
 }
@@ -166,5 +166,83 @@ describe('useImageLoader', () => {
     await act(() => result.current.load(png()));
     unmount();
     expect(b.close).toHaveBeenCalledTimes(1);
+  });
+
+  describe('差し替え確認（DL-01、IN-5）', () => {
+    const fillOp = { kind: 'fill', rect: { x: 0, y: 0, w: 5, h: 5 } } as const;
+
+    /** 1枚目を読み込み、未保存の操作を1件入れた状態にする */
+    async function editedSetup() {
+      const a = bitmap(10, 10);
+      const b = bitmap(20, 20);
+      const ca = canvasEl();
+      const cb = canvasEl();
+      const decode = vi.fn((file: Blob) =>
+        Promise.resolve((file as File).name === 'a.png' ? a : b),
+      );
+      const prepare = vi.fn((base: ImageBitmap) => (base === a ? ca : cb));
+      const ctx = setup({ decode, prepare });
+      await act(() => ctx.result.current.load(png('a.png')));
+      act(() => ctx.result.current.dispatch({ type: 'ADD_OP', op: fillOp }));
+      return { ...ctx, a, b, ca, cb };
+    }
+
+    it('UT-HK-02：未保存の編集があるときに読み込む → 差し替え待ちになり、まだ LOAD されない', async () => {
+      const { result, a } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      expect(result.current.replacePending).toBe(true);
+      expect(result.current.editor).toMatchObject({ base: a, ops: [fillOp], unsaved: true });
+    });
+
+    it('UT-HK-03：キャンセル → 差し替え待ちの画像を close()・Canvas を解放、状態は変わらない', async () => {
+      const { result, a, b, ca, cb } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      const before = result.current.editor;
+      act(() => result.current.cancelReplace());
+      expect(result.current.replacePending).toBe(false);
+      expect(result.current.editor).toBe(before);
+      expect(result.current.canvas).toBe(ca);
+      expect(b.close).toHaveBeenCalledTimes(1);
+      expect([cb.width, cb.height]).toEqual([0, 0]);
+      expect(a.close).not.toHaveBeenCalled();
+    });
+
+    it('UT-HK-07：「差し替える」 → LOAD され、新しい Canvas が表示用になり、前の画像は close()', async () => {
+      const { result, a, b, ca, cb } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      act(() => result.current.confirmReplace());
+      expect(result.current.replacePending).toBe(false);
+      expect(result.current.editor).toMatchObject({ base: b, ops: [], unsaved: false });
+      expect(result.current.canvas).toBe(cb);
+      expect(a.close).toHaveBeenCalledTimes(1);
+      expect([ca.width, ca.height]).toEqual([0, 0]);
+      expect(b.close).not.toHaveBeenCalled();
+    });
+
+    it('保存済み（EXPORTED の後）なら確認せずに差し替える', async () => {
+      const { result, b } = await editedSetup();
+      act(() => result.current.dispatch({ type: 'EXPORTED' }));
+      await act(() => result.current.load(png('b.png')));
+      expect(result.current.replacePending).toBe(false);
+      expect(result.current.editor).toMatchObject({ base: b });
+    });
+
+    it('キャンセルを2回呼んでも close() は1回だけ（Esc の二重処理への備え）', async () => {
+      const { result, b } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      act(() => {
+        result.current.cancelReplace();
+        result.current.cancelReplace();
+      });
+      expect(b.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('差し替え待ちのままアンマウント → 差し替え待ちの画像も close()', async () => {
+      const { result, unmount, a, b } = await editedSetup();
+      await act(() => result.current.load(png('b.png')));
+      unmount();
+      expect(a.close).toHaveBeenCalledTimes(1);
+      expect(b.close).toHaveBeenCalledTimes(1);
+    });
   });
 });

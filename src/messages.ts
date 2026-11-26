@@ -75,6 +75,17 @@ export const messages = {
   mobileNotice: 'PC 向けツールです。スマホはファイル選択のみ対応しています',
   mobileNoticeClose: '案内を閉じる',
 
+  /** DL-01（docs/01 の 4.1） */
+  replace: {
+    title: '編集中の画像を差し替えますか？',
+    body: 'コピーもダウンロードもしていない編集内容は破棄されます。',
+    cancel: 'キャンセル',
+    confirm: '差し替える',
+  },
+
+  /** ファイルを重ねているときの表示（docs/01 の 3.3） */
+  dropHere: 'ここにドロップ',
+
   /** DL-02 */
   verify: {
     title: '外部通信をブロックしている仕組み',

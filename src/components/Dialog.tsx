@@ -6,7 +6,8 @@ type Props = {
   title: ReactNode;
   /** 開いたときは data-autofocus を付けた要素にフォーカスする（なければブラウザの既定） */
   children: ReactNode;
-  className?: string;
+  /** 幅のクラス（既定は最大 640px） */
+  widthClass?: string;
 };
 
 /**
@@ -17,7 +18,13 @@ type Props = {
  * onClose を呼ぶのは Esc（cancel）と背景クリックと、子の「閉じる」ボタンだけ。ネイティブの close イベントは
  * 親が open=false にしたとき（dialog.close()）にも発火するため拾わない（拾うと onClose が2回呼ばれる。P2 レビュー #2）。
  */
-export function Dialog({ open, onClose, title, children, className = '' }: Props) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  widthClass = 'w-[min(640px,calc(100vw-32px))]',
+}: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -48,7 +55,7 @@ export function Dialog({ open, onClose, title, children, className = '' }: Props
         // ダイアログ本体の外側（::backdrop）のクリックは、<dialog> 要素自体へのクリックとして届く
         if (event.target === event.currentTarget) onClose();
       }}
-      className={`m-auto max-h-[90dvh] w-[min(640px,calc(100vw-32px))] overflow-auto rounded-xl border border-zinc-800 bg-zinc-900 p-0 text-zinc-100 shadow-2xl backdrop:bg-black/70 ${className}`}
+      className={`m-auto max-h-[90dvh] ${widthClass} overflow-auto rounded-xl border border-zinc-800 bg-zinc-900 p-0 text-zinc-100 shadow-2xl backdrop:bg-black/70`}
     >
       <div className="flex flex-col gap-4 p-6">
         <h2 id={titleId} className="flex items-center gap-2 text-[17px] font-bold">

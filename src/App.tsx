@@ -1,6 +1,7 @@
 import { useCallback, useReducer, useState } from 'react';
 import { ActionBar } from './components/ActionBar';
 import { CanvasStage } from './components/CanvasStage';
+import { ConfirmReplaceDialog } from './components/ConfirmReplaceDialog';
 import { EmptyState } from './components/EmptyState';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
@@ -9,6 +10,7 @@ import { MosaicNotice } from './components/MosaicNotice';
 import { Toast } from './components/Toast';
 import { Toolbar } from './components/Toolbar';
 import { VerifyDialog } from './components/VerifyDialog';
+import { useDropImage } from './hooks/useDropImage';
 import { useImageLoader } from './hooks/useImageLoader';
 import { usePasteImage } from './hooks/usePasteImage';
 import { usePlatform } from './hooks/usePlatform';
@@ -20,7 +22,7 @@ import { messages } from './messages';
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
  * 編集状態は editorReducer で持つ（docs/02 の 2.2）。
- * S6：貼り付けとファイル選択で読み込める。ドロップと差し替え確認は S7、編集は S8 以降、出力は S11。
+ * S7 まで：貼り付け・ファイル選択・ドロップで読み込み、未保存の編集があれば差し替えを確認する。編集は S8 以降、出力は S11。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
@@ -38,8 +40,14 @@ export function App() {
   const loadFile = useCallback((file: Blob) => void loader.load(file), [loader]);
   const notifyNoImage = useCallback(() => showToast('error', messages.toast.noImage), [showToast]);
 
-  const inputEnabled = acceptsInput({ isModalOpen: verifyOpen, isDragging: false });
+  const isModalOpen = verifyOpen || loader.replacePending;
+  const inputEnabled = acceptsInput({ isModalOpen, isDragging: false });
   usePasteImage({ enabled: inputEnabled, onImage: loadFile, onNoImage: notifyNoImage });
+  const { isOver } = useDropImage({
+    enabled: inputEnabled,
+    onImage: loadFile,
+    onNoImage: notifyNoImage,
+  });
 
   const noop = () => undefined;
 
@@ -62,6 +70,7 @@ export function App() {
       {editor.mode === 'mosaic' && <MosaicNotice />}
       <CanvasStage
         canvas={loader.canvas}
+        dropping={isOver}
         empty={<EmptyState keys={keys} mobileLike={mobileLike} onFile={loadFile} />}
       />
       <ActionBar
@@ -78,6 +87,11 @@ export function App() {
       />
       <Footer />
       <Toast toast={toast} onDismiss={dismiss} />
+      <ConfirmReplaceDialog
+        open={loader.replacePending}
+        onCancel={loader.cancelReplace}
+        onConfirm={loader.confirmReplace}
+      />
       <VerifyDialog open={verifyOpen} onClose={() => setVerifyOpen(false)} />
     </div>
   );
