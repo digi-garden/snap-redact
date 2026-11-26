@@ -1,0 +1,170 @@
+// UT-HK-01・UT-HK-08（docs/06-test-design.md 2.2）ほか
+// デコードと Canvas の用意を偽物に差し替えて、読み込みの順番や失敗を制御する。
+import { act, renderHook } from '@testing-library/react';
+import { useReducer } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { editorReducer, initialEditorState } from '../lib/core/editorReducer';
+import { MAX_EDGE } from '../lib/core/limits';
+import { messages } from '../messages';
+import { useImageLoader, type LoaderDeps } from './useImageLoader';
+
+type FakeBitmap = ImageBitmap & { close: ReturnType<typeof vi.fn> };
+const bitmap = (width: number, height: number) =>
+  ({ width, height, close: vi.fn() }) as unknown as FakeBitmap;
+const canvasEl = () => ({ width: 1, height: 1 }) as unknown as HTMLCanvasElement;
+const png = (name = 'a.png') => new File(['x'], name, { type: 'image/png' });
+
+/** 結果を外から決められる Promise */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+function setup(deps: LoaderDeps) {
+  const showToast = vi.fn();
+  const hook = renderHook(() => {
+    const [editor, dispatch] = useReducer(
+      editorReducer<ImageBitmap>,
+      undefined,
+      initialEditorState<ImageBitmap>,
+    );
+    const loader = useImageLoader({ editor, dispatch, showToast, deps });
+    return { editor, ...loader };
+  });
+  return { ...hook, showToast };
+}
+
+describe('useImageLoader', () => {
+  it('読み込むと loaded になり、用意した Canvas が表示用になる', async () => {
+    const b = bitmap(100, 50);
+    const c = canvasEl();
+    const { result } = setup({ decode: () => Promise.resolve(b), prepare: () => c });
+    await act(() => result.current.load(png()));
+    expect(result.current.editor).toMatchObject({
+      status: 'loaded',
+      base: b,
+      width: 100,
+      height: 50,
+    });
+    expect(result.current.canvas).toBe(c);
+  });
+
+  it('UT-HK-01：遅い読み込み A の後に速い読み込み B → B が表示され、A は close() される', async () => {
+    const a = bitmap(10, 10);
+    const b = bitmap(20, 20);
+    const slow = deferred<ImageBitmap | null>();
+    const decode = vi.fn((file: Blob) =>
+      (file as File).name === 'a.png' ? slow.promise : Promise.resolve(b as ImageBitmap),
+    );
+    const { result } = setup({ decode, prepare: () => canvasEl() });
+
+    let first!: Promise<void>;
+    act(() => {
+      first = result.current.load(png('a.png'));
+    });
+    await act(() => result.current.load(png('b.png')));
+    await act(async () => {
+      slow.resolve(a);
+      await first;
+    });
+
+    expect(result.current.editor).toMatchObject({ status: 'loaded', base: b });
+    expect(a.close).toHaveBeenCalledTimes(1);
+    expect(b.close).not.toHaveBeenCalled();
+  });
+
+  it('UT-HK-08：編集中に読み込んだ画像の Canvas が用意できない → TS-05、編集中の状態は変わらず、新しい画像は close()', async () => {
+    const first = bitmap(100, 100);
+    const second = bitmap(200, 100); // 上限内だが、Canvas が用意できない画像
+    const firstCanvas = canvasEl();
+    const prepare = vi.fn((base: ImageBitmap) => (base === first ? firstCanvas : null));
+    const decode = vi.fn((file: Blob) =>
+      Promise.resolve((file as File).name === 'first.png' ? first : second),
+    );
+    const { result, showToast } = setup({ decode, prepare });
+
+    await act(() => result.current.load(png('first.png')));
+    const before = result.current.editor;
+    await act(() => result.current.load(png('second.png')));
+
+    expect(showToast).toHaveBeenLastCalledWith('error', messages.toast.cannotProcess);
+    expect(result.current.editor).toBe(before);
+    expect(result.current.canvas).toBe(firstCanvas);
+    expect(second.close).toHaveBeenCalledTimes(1);
+    expect(first.close).not.toHaveBeenCalled();
+  });
+
+  it('差し替えると前の元画像を close() し、前の Canvas を 0×0 に戻す', async () => {
+    const a = bitmap(10, 10);
+    const b = bitmap(20, 20);
+    const ca = canvasEl();
+    const decode = vi.fn((file: Blob) => Promise.resolve((file as File).name === 'a.png' ? a : b));
+    const prepare = vi.fn((base: ImageBitmap) => (base === a ? ca : canvasEl()));
+    const { result } = setup({ decode, prepare });
+
+    await act(() => result.current.load(png('a.png')));
+    await act(() => result.current.load(png('b.png')));
+
+    expect(a.close).toHaveBeenCalledTimes(1);
+    expect([ca.width, ca.height]).toEqual([0, 0]);
+  });
+
+  it('非対応の形式 → TS-02、デコードしない', async () => {
+    const decode = vi.fn();
+    const { result, showToast } = setup({ decode, prepare: vi.fn() });
+    await act(() => result.current.load(new File(['x'], 'a.bmp', { type: 'image/bmp' })));
+    expect(showToast).toHaveBeenCalledWith('error', messages.toast.unsupported);
+    expect(decode).not.toHaveBeenCalled();
+  });
+
+  it('デコードに失敗 → TS-03', async () => {
+    const { result, showToast } = setup({ decode: () => Promise.resolve(null), prepare: vi.fn() });
+    await act(() => result.current.load(png()));
+    expect(showToast).toHaveBeenCalledWith('error', messages.toast.decodeFailed);
+    expect(result.current.editor.status).toBe('empty');
+  });
+
+  it('上限を超える → TS-04、close() する', async () => {
+    const big = bitmap(MAX_EDGE + 1, 10);
+    const prepare = vi.fn();
+    const { result, showToast } = setup({ decode: () => Promise.resolve(big), prepare });
+    await act(() => result.current.load(png()));
+    expect(showToast).toHaveBeenCalledWith('error', messages.toast.tooLarge(MAX_EDGE));
+    expect(big.close).toHaveBeenCalledTimes(1);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it('GIF → 読み込んだうえで TS-09', async () => {
+    const { result, showToast } = setup({
+      decode: () => Promise.resolve(bitmap(10, 10)),
+      prepare: () => canvasEl(),
+    });
+    await act(() => result.current.load(new File(['x'], 'a.gif', { type: 'image/gif' })));
+    expect(result.current.editor.status).toBe('loaded');
+    expect(showToast).toHaveBeenCalledWith('info', messages.toast.gifFirstFrame);
+  });
+
+  it('クリアで empty に戻し、元画像を close()、Canvas を 0×0 に戻す', async () => {
+    const b = bitmap(10, 10);
+    const c = canvasEl();
+    const { result } = setup({ decode: () => Promise.resolve(b), prepare: () => c });
+    await act(() => result.current.load(png()));
+    act(() => result.current.clear());
+    expect(result.current.editor.status).toBe('empty');
+    expect(result.current.canvas).toBe(null);
+    expect(b.close).toHaveBeenCalledTimes(1);
+    expect([c.width, c.height]).toEqual([0, 0]);
+  });
+
+  it('画面を閉じる（アンマウント）と元画像を close() する', async () => {
+    const b = bitmap(10, 10);
+    const { result, unmount } = setup({
+      decode: () => Promise.resolve(b),
+      prepare: () => canvasEl(),
+    });
+    await act(() => result.current.load(png()));
+    unmount();
+    expect(b.close).toHaveBeenCalledTimes(1);
+  });
+});

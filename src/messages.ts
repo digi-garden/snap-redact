@@ -47,6 +47,28 @@ export const messages = {
     copyright: '© digi-garden',
   },
 
+  /** トースト（docs/01 の 5.1） */
+  toast: {
+    noImage: '画像が見つかりませんでした', // TS-01
+    unsupported: 'この形式には対応していません（PNG / JPEG / WebP / GIF）', // TS-02
+    decodeFailed: '画像を読み込めませんでした', // TS-03
+    tooLarge: (maxEdge: number) =>
+      `画像が大きすぎます（長辺 ${maxEdge.toLocaleString('ja-JP')}px まで）`, // TS-04
+    cannotProcess: 'この画像は大きすぎて処理できません', // TS-05
+    copied: 'コピーしました。そのまま貼り付けできます', // TS-06
+    copyFailed: 'コピーできませんでした。ダウンロードをご利用ください', // TS-07
+    downloaded: 'redacted_image.png を保存しました', // TS-08
+    gifFirstFrame: 'GIF は最初のコマだけを読み込みました', // TS-09
+    close: '通知を閉じる',
+  },
+
+  /** アクションバーの情報表示（docs/01 の 3.4） */
+  imageInfo: (width: number, height: number, ops: number) =>
+    `${width} × ${height} px ・ 操作 ${ops} 件`,
+
+  /** キャンバスの読み上げ名（docs/01 の 9章） */
+  canvasLabel: '編集中の画像',
+
   /** NT-01 */
   mosaicNotice: '文字には黒塗りを推奨（モザイクは復元されうる）',
   /** NT-02 */

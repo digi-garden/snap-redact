@@ -182,6 +182,12 @@ export default tseslint.config(
     },
   },
 
+  // テスト：モック関数（vi.fn）をオブジェクトから取り出して検証するため、unbound-method は使わない
+  {
+    files: ['src/**/*.test.{ts,tsx}'],
+    rules: { '@typescript-eslint/unbound-method': 'off' },
+  },
+
   // レイヤーごとの依存ルール
   ...layerConfigs,
 );
