@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch } from 'react';
 import { isGif, isSupportedImageType } from '../lib/core/imageType';
 import { exceedsLimit, MAX_EDGE } from '../lib/core/limits';
+import { needsReplaceConfirm } from '../lib/core/selectors';
 import type { EditorAction, EditorState } from '../lib/core/types';
 import { decodeImage } from '../lib/browser/decodeImage';
 import { prepareCanvas, releaseCanvas } from '../lib/canvas/prepareCanvas';
@@ -15,6 +16,15 @@ export type LoaderDeps = {
 
 const defaultDeps: LoaderDeps = { decode: decodeImage, prepare: prepareCanvas };
 
+/** 描画まで済ませた、読み込み直前の画像 */
+type Prepared = {
+  base: ImageBitmap;
+  width: number;
+  height: number;
+  canvas: HTMLCanvasElement;
+  gif: boolean;
+};
+
 type Options = {
   editor: EditorState<ImageBitmap>;
   dispatch: Dispatch<EditorAction<ImageBitmap>>;
@@ -26,35 +36,64 @@ type Options = {
  * 画像の読み込み（F-04、docs/02 の 3.4）と、表示用 Canvas・元画像の後片付け。
  * - 世代番号：時間のかかるデコードの後で、後から来た読み込みに追い越されていないか確かめる
  * - 描画できるかは新しい Canvas で先に確かめる。失敗しても編集中の画像はそのまま残る
- * - 差し替え確認（DL-01）は S7 で加える
+ * - 未保存の編集があるときは、差し替え待ち（pending）にして確認（DL-01）を待つ（IN-5）
  */
 export function useImageLoader({ editor, dispatch, showToast, deps = defaultDeps }: Options) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [pending, setPending] = useState<Prepared | null>(null);
   const generation = useRef(0);
 
-  // いま表示している元画像と Canvas（後片付けに使う。最新の値を ref に写す）
-  const current = useRef<{ base: ImageBitmap | null; canvas: HTMLCanvasElement | null }>({
-    base: null,
-    canvas: null,
+  // 最新の状態を ref に写す（非同期の処理の後で使う。描画中には書き換えない）
+  const latest = useRef({
+    editor,
+    canvas: null as HTMLCanvasElement | null,
+    pending: null as Prepared | null,
   });
   useEffect(() => {
-    current.current = { base: editor.status === 'loaded' ? editor.base : null, canvas };
-  }, [editor, canvas]);
+    latest.current = { editor, canvas, pending };
+  }, [editor, canvas, pending]);
 
-  // 画面を閉じるときに解放する
+  // 画面を閉じるときに、表示中と差し替え待ちの画像を解放する
   useEffect(
     () => () => {
-      current.current.base?.close();
-      if (current.current.canvas) releaseCanvas(current.current.canvas);
+      const { editor: e, canvas: c, pending: p } = latest.current;
+      if (e.status === 'loaded') e.base.close();
+      if (c) releaseCanvas(c);
+      if (p) discard(p);
     },
     [],
   );
 
-  const release = useCallback(() => {
-    const { base, canvas: old } = current.current;
-    base?.close();
-    if (old) releaseCanvas(old);
+  /** 表示中の元画像と Canvas を解放する */
+  const releaseCurrent = useCallback(() => {
+    const { editor: e, canvas: c } = latest.current;
+    if (e.status === 'loaded') e.base.close();
+    if (c) releaseCanvas(c);
   }, []);
+
+  /** 用意した画像で差し替える（docs/02 の 3.4 手順6） */
+  const commit = useCallback(
+    (next: Prepared) => {
+      releaseCurrent();
+      dispatch({ type: 'LOAD', base: next.base, width: next.width, height: next.height });
+      setCanvas(next.canvas);
+      latest.current = {
+        editor: {
+          status: 'loaded',
+          mode: latest.current.editor.mode,
+          base: next.base,
+          width: next.width,
+          height: next.height,
+          ops: [],
+          unsaved: false,
+        },
+        canvas: next.canvas,
+        pending: null,
+      };
+      if (next.gif) showToast('info', messages.toast.gifFirstFrame);
+    },
+    [dispatch, releaseCurrent, showToast],
+  );
 
   const load = useCallback(
     async (file: Blob) => {
@@ -95,27 +134,68 @@ export function useImageLoader({ editor, dispatch, showToast, deps = defaultDeps
         showToast('error', messages.toast.cannotProcess);
         return;
       }
+      const next: Prepared = {
+        base: bitmap,
+        width,
+        height,
+        canvas: prepared,
+        gif: isGif(file.type),
+      };
 
-      // 5. 差し替え確認（DL-01）は S7
+      // 5. 差し替え確認：未保存の編集があれば DL-01 を待つ（すでに待っているものがあれば捨てて置き換える）
+      if (needsReplaceConfirm(latest.current.editor)) {
+        const old = latest.current.pending;
+        if (old) discard(old);
+        latest.current = { ...latest.current, pending: next };
+        setPending(next);
+        return;
+      }
 
-      // 6. 読み込み：前の元画像と Canvas を解放してから差し替える
-      release();
-      dispatch({ type: 'LOAD', base: bitmap, width, height });
-      setCanvas(prepared);
-      current.current = { base: bitmap, canvas: prepared };
-      if (isGif(file.type)) showToast('info', messages.toast.gifFirstFrame);
+      // 6. 読み込み
+      commit(next);
     },
-    [deps, dispatch, release, showToast],
+    [commit, deps, showToast],
   );
+
+  /** DL-01 で「差し替える」 */
+  const confirmReplace = useCallback(() => {
+    const next = latest.current.pending;
+    if (!next) return;
+    setPending(null);
+    commit(next);
+  }, [commit]);
+
+  /** DL-01 で「キャンセル」（Esc・背景クリックも同じ） */
+  const cancelReplace = useCallback(() => {
+    const next = latest.current.pending;
+    if (!next) return;
+    discard(next);
+    latest.current = { ...latest.current, pending: null };
+    setPending(null);
+  }, []);
 
   /** クリア（F-09）：状態を empty に戻し、元画像と Canvas を解放する */
   const clear = useCallback(() => {
     generation.current += 1; // 読み込み途中のものがあれば捨てる
-    release();
-    current.current = { base: null, canvas: null };
+    releaseCurrent();
+    latest.current = { ...latest.current, canvas: null };
     setCanvas(null);
     dispatch({ type: 'CLEAR' });
-  }, [dispatch, release]);
+  }, [dispatch, releaseCurrent]);
 
-  return { canvas, load, clear };
+  return {
+    canvas,
+    load,
+    clear,
+    /** 差し替え確認（DL-01）を出すべきか */
+    replacePending: pending !== null,
+    confirmReplace,
+    cancelReplace,
+  };
+}
+
+/** 差し替え待ちの画像を捨てる */
+function discard(p: Prepared) {
+  p.base.close();
+  releaseCanvas(p.canvas);
 }
