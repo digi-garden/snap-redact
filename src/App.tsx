@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useState } from 'react';
+import { useCallback, useReducer, useRef, useState } from 'react';
 import { ActionBar } from './components/ActionBar';
 import { CanvasStage } from './components/CanvasStage';
 import { ConfirmReplaceDialog } from './components/ConfirmReplaceDialog';
@@ -7,6 +7,7 @@ import { Footer } from './components/Footer';
 import { Header } from './components/Header';
 import { MobileNotice } from './components/MobileNotice';
 import { MosaicNotice } from './components/MosaicNotice';
+import { SelectionOverlay } from './components/SelectionOverlay';
 import { Toast } from './components/Toast';
 import { Toolbar } from './components/Toolbar';
 import { VerifyDialog } from './components/VerifyDialog';
@@ -14,15 +15,19 @@ import { useDropImage } from './hooks/useDropImage';
 import { useImageLoader } from './hooks/useImageLoader';
 import { usePasteImage } from './hooks/usePasteImage';
 import { usePlatform } from './hooks/usePlatform';
+import { useRectDrag } from './hooks/useRectDrag';
 import { useToast } from './hooks/useToast';
 import { editorReducer, initialEditorState } from './lib/core/editorReducer';
 import { acceptsInput, canExport, canUndo } from './lib/core/selectors';
+import type { Op, Rect } from './lib/core/types';
+import { applyOp } from './lib/canvas/applyOp';
 import { messages } from './messages';
 
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
  * 編集状態は editorReducer で持つ（docs/02 の 2.2）。
- * S7 まで：貼り付け・ファイル選択・ドロップで読み込み、未保存の編集があれば差し替えを確認する。編集は S8 以降、出力は S11。
+ * S8 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）と、矩形の黒塗り。
+ * モザイクの描画は S9、Undo の描き直しは S10、出力は S11。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
@@ -41,7 +46,35 @@ export function App() {
   const notifyNoImage = useCallback(() => showToast('error', messages.toast.noImage), [showToast]);
 
   const isModalOpen = verifyOpen || loader.replacePending;
-  const inputEnabled = acceptsInput({ isModalOpen, isDragging: false });
+
+  // 矩形を確定したら、操作を記録して、その操作だけを描く（docs/02 の 3.6）
+  const work = useRef<HTMLCanvasElement | null>(null); // モザイク用の作業 Canvas（1枚を使い回す）
+  const { canvas } = loader;
+  const commitRect = useCallback(
+    (rect: Rect) => {
+      if (!canvas || editor.status !== 'loaded') return;
+      if (editor.mode !== 'fill') return; // モザイクは S9 で描けるようにする
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        showToast('error', messages.toast.cannotProcess);
+        return;
+      }
+      work.current ??= document.createElement('canvas');
+      const op: Op = { kind: 'fill', rect };
+      dispatch({ type: 'ADD_OP', op });
+      applyOp(ctx, op, work.current);
+    },
+    [canvas, editor.status, editor.mode, showToast],
+  );
+  const rectDrag = useRectDrag({
+    canvas,
+    width: editor.status === 'loaded' ? editor.width : 0,
+    height: editor.status === 'loaded' ? editor.height : 0,
+    enabled: editor.status === 'loaded' && !isModalOpen,
+    onCommit: commitRect,
+  });
+
+  const inputEnabled = acceptsInput({ isModalOpen, isDragging: rectDrag.isDragging });
   usePasteImage({ enabled: inputEnabled, onImage: loadFile, onNoImage: notifyNoImage });
   const { isOver } = useDropImage({
     enabled: inputEnabled,
@@ -69,8 +102,21 @@ export function App() {
       />
       {editor.mode === 'mosaic' && <MosaicNotice />}
       <CanvasStage
-        canvas={loader.canvas}
+        canvas={canvas}
         dropping={isOver}
+        selection={
+          canvas &&
+          rectDrag.rect &&
+          editor.status === 'loaded' && (
+            <SelectionOverlay
+              canvas={canvas}
+              rect={rectDrag.rect}
+              width={editor.width}
+              height={editor.height}
+              mode={editor.mode}
+            />
+          )
+        }
         empty={<EmptyState keys={keys} mobileLike={mobileLike} onFile={loadFile} />}
       />
       <ActionBar

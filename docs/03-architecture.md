@@ -1,9 +1,10 @@
-# アーキテクチャ設計書：Snap-Redact（MVP）v1.1
+# アーキテクチャ設計書：Snap-Redact（MVP）v1.2
 
-最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2 ／ 関連：`docs/01-screen-design.md` v1.1、`docs/02-functional-design.md` v1.1
+最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2 ／ 関連：`docs/01-screen-design.md` v1.1、`docs/02-functional-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
 * v1.1（2026-11-22）：外部レビュー2回目を反映（作業用 Canvas を引数で渡す方式に統一、市松模様を CSS のグラデーションで描く、`_headers` の置き場所）
+* v1.2（2026-11-26）：S8 の実装に合わせ、CanvasStage の要素の構成を変更（選択枠は Canvas を差し込む要素の外に置く。5.2）
 
 基本設計の資料 3/6。ソースコードを「どう分け、どこに何を書き、何に依存してよいか」を定める。機能の振る舞いは 02、外部通信の禁止など安全面の仕組みは 04 で扱う。
 
@@ -146,9 +147,10 @@ components ──▶ hooks ──▶ lib/browser ──▶ lib/core
 
 ```text
 CanvasStage（div：外枠・枠線・背景の市松模様はここに付ける。市松模様は CSS の `conic-gradient` で描き、`data:` URI の画像は使わない（04 の 2.2））
- ├─ div ref=containerRef（Canvas を差し込む場所）
- │   └─ canvas（prepareCanvas が作った要素を appendChild で差し込む。border・padding なし）
- ├─ SelectionOverlay（position: absolute; pointer-events: none）
+ ├─ div（position: relative。選択枠の位置の基準）
+ │   ├─ div ref=containerRef（Canvas を差し込む場所。中身は差し込むたびに置き換わるので、ほかの要素は入れない）
+ │   │   └─ canvas（prepareCanvas が作った要素を差し込む。border・padding なし）
+ │   └─ SelectionOverlay（position: absolute; pointer-events: none）
  ├─ EmptyState（未読み込み時）
  └─ ドロップ強調の重ね表示
 ```

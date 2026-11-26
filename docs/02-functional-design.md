@@ -1,8 +1,9 @@
-# 機能設計書：Snap-Redact（MVP）v1.1
+# 機能設計書：Snap-Redact（MVP）v1.4
 
-最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
+最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.4（2026-11-26）：S8 の実装で見つけた `toRect` の判定の抜けを修正（画像の完全に外側で幅・高さが負になる場合。3.5.2）
 * v1.3（2026-11-26）：S7 でサイズ上限を確定（8章 #2）
 * v1.2（2026-11-25）：S5 の実装に合わせ、`EditorState` を型引数 `TImage` で元画像を受け取る形に変更
 * v1.1（2026-11-22）：外部レビュー1回目を反映（透過画像へのモザイク、極小矩形の判定、読み込みの世代番号、描画できるかの事前確認、ドラッグ中の操作の無視、選択枠の描き方、Canvas の枠線、縮小時の補間品質、ドロップ表示の回数方式、`getAsFile()` / `getSelection()` の null）
@@ -237,7 +238,7 @@ function toRect(a: Point, b: Point, width: number, height: number): Rect | null 
   const bottom = Math.min(height, Math.ceil(Math.max(a.y, b.y)));
   const w = right - left;
   const h = bottom - top;
-  if (w === 0 || h === 0) return null;                             // 面積のない矩形
+  if (w <= 0 || h <= 0) return null;                               // 面積のない矩形（画像の完全に外側では負になる）
   if (w < 3 && h < 3) return null;                                 // ED-6：幅・高さとも 3px 未満
   return { x: left, y: top, w, h };
 }
@@ -245,6 +246,7 @@ function toRect(a: Point, b: Point, width: number, height: number): Rect | null 
 
 * 幅 80px × 高さ 2px のような細い矩形は有効にする（罫線や1行の細い文字を隠せるように）
 
+* 画像の完全に外側でドラッグすると、切り詰めた結果の幅・高さが負になる（例：右の外で横にドラッグ）。`=== 0` ではなく `<= 0` で判定する
 * 逆方向（右下 → 左上）のドラッグも `min` / `max` で正しく扱う
 * 「切り捨て・切り上げ」により、ユーザーが覆った範囲より狭くならない
 
