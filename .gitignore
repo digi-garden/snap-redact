@@ -8,6 +8,10 @@ dist/
 .vite/
 coverage/
 
+# Playwright
+playwright-report/
+test-results/
+
 # 環境変数（秘密情報を含みうる。このプロジェクトでは使わない）
 .env
 .env.*

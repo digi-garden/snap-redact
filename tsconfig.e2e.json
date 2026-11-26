@@ -1,0 +1,17 @@
+{
+  "//": "ブラウザでの動作確認（e2e/）と Playwright の設定。テストは Node で動き、page.evaluate の中はブラウザで動くので DOM の型も使う",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["e2e", "playwright.config.ts"]
+}

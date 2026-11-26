@@ -4,3 +4,5 @@ coverage/
 package-lock.json
 docs/
 LICENSE
+playwright-report/
+test-results/
