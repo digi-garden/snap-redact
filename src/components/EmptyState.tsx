@@ -26,7 +26,7 @@ export function EmptyState({ keys, mobileLike, onFile }: Props) {
   );
 
   return (
-    <div className="flex h-full max-h-[380px] w-full max-w-[760px] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-zinc-700 p-6 text-center">
+    <div className="m-auto flex h-full max-h-[380px] min-h-fit w-full max-w-[760px] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-zinc-700 p-6 text-center">
       <ImageIcon className="text-zinc-500" />
       {mobileLike ? (
         choose

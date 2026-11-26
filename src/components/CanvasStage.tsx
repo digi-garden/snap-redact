@@ -38,7 +38,8 @@ export function CanvasStage({ canvas, empty, dropping }: Props) {
   }, [canvas]);
 
   return (
-    <main className="relative flex min-h-0 flex-1 items-center justify-center p-4 sm:p-6">
+    // 高さが足りないときは中でスクロールする。中央寄せは子の m-auto で行う（items-center だと上側が切れてスクロールできないため）
+    <main className="relative flex min-h-0 flex-1 overflow-auto p-4 sm:p-6">
       {canvas ? (
         <div ref={container} role="img" aria-label={messages.canvasLabel} className={HOST_CLASS} />
       ) : (
