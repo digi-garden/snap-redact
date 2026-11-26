@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { ActionBar } from './components/ActionBar';
 import { CanvasStage } from './components/CanvasStage';
 import { ConfirmReplaceDialog } from './components/ConfirmReplaceDialog';
@@ -24,6 +24,7 @@ import { acceptsInput, canExport, canUndo } from './lib/core/selectors';
 import type { Op, Rect } from './lib/core/types';
 import { applyOp } from './lib/canvas/applyOp';
 import { renderAll } from './lib/canvas/renderAll';
+import { releaseCanvas } from './lib/canvas/prepareCanvas';
 import { messages } from './messages';
 
 /**
@@ -52,6 +53,12 @@ export function App() {
 
   // 矩形を確定したら、その操作だけを描き、描けたら記録する（docs/02 の 3.6）
   const work = useRef<HTMLCanvasElement | null>(null); // モザイク用の作業 Canvas（1枚を使い回す）
+  /** 作業用 Canvas を解放する（クリア・アンマウント。次に使うときに作り直す） */
+  const releaseWork = useCallback(() => {
+    if (work.current) releaseCanvas(work.current);
+    work.current = null;
+  }, []);
+  useEffect(() => releaseWork, [releaseWork]);
   const { canvas } = loader;
   const commitRect = useCallback(
     (rect: Rect) => {
@@ -114,7 +121,8 @@ export function App() {
   const clear = useCallback(() => {
     if (isDragging) return;
     loader.clear();
-  }, [isDragging, loader]);
+    releaseWork();
+  }, [isDragging, loader, releaseWork]);
 
   // キー操作（docs/02 の 4章）。Ctrl+C は S11 で登録する
   useShortcuts({
