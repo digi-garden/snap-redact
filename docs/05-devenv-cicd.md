@@ -1,9 +1,11 @@
-# 開発環境・CI/CD 設計書：Snap-Redact（MVP）v1.1
+# 開発環境・CI/CD 設計書：Snap-Redact（MVP）v1.2
 
-最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（4章、6.4、8章） ／ 関連：`docs/03-architecture.md` v1.1、`docs/04-security-design.md` v1.1
+最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2（4章、6.4、8章） ／ 関連：`docs/03-architecture.md` v1.1、`docs/04-security-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
 * v1.1（2026-11-22）：外部レビュー2回目を反映。8章に GitHub の設定手順を追加し、CodeQL の有効化を S1 の後に移した（出力先を `dist/snap-redact/` にしてプレビュー URL と本番のパスをそろえる、`_headers` の配置、型チェックを `tsc -p` 2回に変更、`vite preview` の CSP）
+
+* v1.2（2026-11-26）：P4 の後に、WebKit（Safari 系）と Chromium で動かす E2E のワークフローを追加（2章、5.1、5.3）
 
 基本設計の資料 5/6。手元の開発環境、ビルドの設定、CI、デプロイ、ブランチとリリースの運用を定める。
 
@@ -17,7 +19,7 @@
 | パッケージ管理 | npm（`package-lock.json` をコミット） |
 | エディタ | VS Code（推奨拡張：ESLint、Prettier、Tailwind CSS IntelliSense を `.vscode/extensions.json` に書く） |
 | OS | Windows と macOS のどちらでも動くこと（パスの区切り・改行コードに依存しない）。改行は `.gitattributes` で LF に統一 |
-| 確認用ブラウザ | Chrome、Edge、Firefox、Safari の最新版（Safari は Mac で確認） |
+| 確認用ブラウザ | Chrome、Edge、Firefox、Safari の最新版。Mac がないため、Safari 系は CI の WebKit（5.3）で毎回確かめ、本物の Safari は公開前に iPad・iPhone またはクラウドの実機サービスで一度確かめる |
 
 ---
 
@@ -28,11 +30,12 @@
 | `dev` | `vite` | 開発サーバー（CSP ヘッダーは付かない） |
 | `build` | `vite build && node scripts/copy-deploy-files.mjs` | 本番ビルド（本体は `dist/snap-redact/`、`_headers`・`_redirects` は `dist/` 直下） |
 | `preview` | `vite preview` | ビルド結果の確認。`_headers` 相当のヘッダーを付けて CSP を確かめる（2.1） |
-| `typecheck` | `tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.node.json --noEmit` | 型チェック（`lib/core` は DOM なしの設定で別に検査する） |
+| `typecheck` | `tsc -p` を `tsconfig.app` / `core` / `node` / `e2e` の4つで実行 | 型チェック（`lib/core` は DOM なしの設定で別に検査する） |
 | `lint` | `eslint . --max-warnings 0 --report-unused-disable-directives` | lint（警告も失敗扱い） |
 | `format` / `format:check` | `prettier --write .` / `prettier --check .` | 整形 |
 | `test` | `vitest run` | 単体テスト |
 | `check:dist` | `node scripts/check-dist.mjs` | ビルド成果物の検査（04 の 4章） |
+| `test:e2e` | `playwright test` | ブラウザでの動作確認（5.3）。事前に `build` が必要。手元で Chrome を使うときは `CHROME_PATH` を指定し `--project=chromium` |
 | `verify` | `typecheck` → `lint` → `format:check` → `test` → `build` → `check:dist` | CI と同じ確認を手元で一括実行 |
 
 ### 2.1 手元で CSP を確かめる
@@ -82,6 +85,7 @@
 | :--- | :--- | :--- |
 | `ci` | checkout → setup-node（`.nvmrc`、npm キャッシュ）→ `npm ci` → `typecheck` → `lint` → `format:check` → `test` → `build` → `check:dist` | 必須 |
 | `secrets` | checkout（`fetch-depth: 0`、履歴全体）→ gitleaks CLI で `gitleaks detect` | 必須 |
+| `e2e`（`e2e.yml`） | checkout → setup-node → `npm ci` → `build` → `playwright install --with-deps webkit chromium` → `test:e2e` | 安定して通ることを数回確かめてから必須にする（5.3） |
 
 * gitleaks は公式の GitHub Action ではなく CLI を直接実行する（公式 Action は Organization のリポジトリでライセンスキーが必要なため）。CLI のバージョンは固定し、ダウンロードしたファイルのチェックサムを確かめる
 * すべての Action はコミットの SHA で固定する（04 の 6章）
@@ -92,6 +96,16 @@
 
 * CodeQL：GitHub の Default setup を使う（ワークフローファイルは置かない）
 * Dependabot：`.github/dependabot.yml` で `npm` と `github-actions` を週1回。開発用の依存はまとめて1つの PR にする（`groups`）
+
+### 5.3 E2E（WebKit・Chromium）
+
+* 目的：Mac がなくても、Safari 系（WebKit）の Canvas の描画と Pointer Events を PR ごとに確かめる。単体テスト（jsdom）では画素を見られないため、黒塗り・モザイクの結果の画素もここで確かめる
+* 配信：本番と同じビルドを `vite preview` で配信する（`deploy/_headers` の CSP 付き）
+* 内容（`e2e/`）
+  * `editor.spec.ts`：ファイル選択で読み込み → 黒塗り（範囲が不透明の黒、文字の画素が残らない、元に戻すと元の画像と一致）、透過 PNG のモザイク（ブロックごとに単色、範囲の外に文字が残らない）、ドラッグ中の `Esc`
+  * `security.spec.ts`：CSP（`connect-src 'none'`）が付くこと、同じオリジン以外へのリクエストがないこと、ページの中からの `fetch` が止められること
+* クリップボード（貼り付け・コピー）は自動化しにくいため対象外。手動確認（06 の 4章）で確かめる
+* Playwright の WebKit は Safari そのものではない（macOS・iOS の Safari と挙動が違う場合がある）。本物の Safari は公開前に一度確かめる
 
 ---
 

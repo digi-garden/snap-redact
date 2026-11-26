@@ -1,0 +1,45 @@
+# 設計：docs/05-devenv-cicd.md 5.3、docs/06-test-design.md 4.2
+# 本番と同じビルドを vite preview（CSP 付き）で配信し、WebKit（Safari 系）と Chromium で動作を確かめる。
+# Mac がなくても Safari 系の描画を毎回確かめるためのもの。本物の Safari（macOS・iOS）は公開前に一度確かめる。
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Install browsers (WebKit, Chromium)
+        run: npx playwright install --with-deps webkit chromium
+
+      - name: E2E tests
+        run: npm run test:e2e

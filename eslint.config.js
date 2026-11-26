@@ -115,6 +115,8 @@ export default tseslint.config(
       'node_modules/**',
       'coverage/**',
       'docs/**',
+      'playwright-report/**',
+      'test-results/**',
       // 禁止ルールのテスト用ファイル（scripts/eslint-rules.test.mjs が ignore を無効にして検査する）
       'src/test/eslint-forbidden/**',
     ],
@@ -125,7 +127,7 @@ export default tseslint.config(
 
   // 設定ファイル・ビルド用スクリプト（Node で動く。ブラウザには届かない）
   {
-    files: ['*.{js,ts}', 'scripts/**/*.{js,mjs,ts}'],
+    files: ['*.{js,ts}', 'scripts/**/*.{js,mjs,ts}', 'e2e/**/*.ts'],
     extends: [tseslint.configs.recommended],
     languageOptions: { globals: globals.node },
   },
