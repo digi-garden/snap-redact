@@ -110,6 +110,16 @@ describe('useRectDrag', () => {
     expect(onCommit).not.toHaveBeenCalled();
   });
 
+  it('lostpointercapture（キャプチャを失った）で破棄し、その後に離しても確定しない', () => {
+    const { result, canvas, onCommit } = setup();
+    pointer(canvas, 'pointerdown', { x: 110, y: 60 });
+    pointer(canvas, 'pointermove', { x: 160, y: 80 });
+    pointer(canvas, 'lostpointercapture', { x: 160, y: 80 });
+    expect(result.current.isDragging).toBe(false);
+    pointer(canvas, 'pointerup', { x: 160, y: 80 });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('cancel()（Esc）で破棄し、その後に離しても確定しない', () => {
     const { result, canvas, onCommit } = setup();
     pointer(canvas, 'pointerdown', { x: 110, y: 60 });

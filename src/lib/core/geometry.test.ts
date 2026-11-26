@@ -117,6 +117,17 @@ describe('toRect', () => {
   });
 });
 
+describe('数でない座標', () => {
+  it('表示サイズが 0 で座標が NaN・Infinity になっても、矩形にしない', () => {
+    const box = { left: 0, top: 0, width: 0, height: 0 };
+    const a = toImagePoint(0, 0, box, 100, 100); // 0 × Infinity → NaN
+    const b = toImagePoint(50, 50, box, 100, 100); // 50 × Infinity → Infinity
+    expect(toRect(a, b, 100, 100)).toBeNull();
+    expect(toRect({ x: 10, y: 10 }, { x: Infinity, y: 50 }, 100, 100)).toBeNull();
+    expect(toRect({ x: NaN, y: 10 }, { x: 50, y: 50 }, 100, 100)).toBeNull();
+  });
+});
+
 describe('toDisplayBox', () => {
   it('原寸の矩形を表示の大きさに戻す', () => {
     const box = { left: 40, top: 30, width: 960, height: 540 };

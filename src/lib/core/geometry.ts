@@ -25,9 +25,11 @@ export function toImagePoint(
 
 /**
  * 2点から矩形を作る（3.5.2）。始点は切り捨て、終点は切り上げて、覆った範囲より狭くしない。
- * 画像の範囲に切り詰め、面積がない、または幅・高さとも 3px 未満なら null。
+ * 画像の範囲に切り詰め、面積がない、幅・高さとも 3px 未満、または座標が数でないなら null。
  */
 export function toRect(a: Point, b: Point, width: number, height: number): Rect | null {
+  // 表示サイズが 0 のときなど、座標が数でない（NaN・Infinity）なら矩形にしない
+  if (![a.x, a.y, b.x, b.y].every(Number.isFinite)) return null;
   const left = Math.max(0, Math.floor(Math.min(a.x, b.x)));
   const top = Math.max(0, Math.floor(Math.min(a.y, b.y)));
   const right = Math.min(width, Math.ceil(Math.max(a.x, b.x)));
