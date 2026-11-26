@@ -96,4 +96,23 @@ describe('useDropImage', () => {
     drag('dragend');
     expect(result.current.isOver).toBe(false);
   });
+  it('dragover の dropEffect：受け付けるときは copy、ダイアログ表示中は none', () => {
+    const { rerender } = setup();
+    const over = drag('dragover');
+    expect((over as DragEvent).dataTransfer?.dropEffect).toBe('copy');
+    rerender({ enabled: false });
+    const blocked = drag('dragover');
+    expect((blocked as DragEvent).dataTransfer?.dropEffect).toBe('none');
+  });
+
+  it('タブが隠れる（visibilitychange で hidden）と強調表示が消える', () => {
+    const { result } = setup();
+    drag('dragenter');
+    const spy = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    spy.mockRestore();
+    expect(result.current.isOver).toBe(false);
+  });
 });

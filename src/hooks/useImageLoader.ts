@@ -178,8 +178,12 @@ export function useImageLoader({ editor, dispatch, showToast, deps = defaultDeps
   const clear = useCallback(() => {
     generation.current += 1; // 読み込み途中のものがあれば捨てる
     releaseCurrent();
-    latest.current = { ...latest.current, canvas: null };
+    const { editor: e, pending: p } = latest.current;
+    if (p) discard(p);
+    // 再描画を待たずに ref も empty にする（直後に終わった読み込みが古い状態を見ないように）
+    latest.current = { editor: { status: 'empty', mode: e.mode }, canvas: null, pending: null };
     setCanvas(null);
+    setPending(null);
     dispatch({ type: 'CLEAR' });
   }, [dispatch, releaseCurrent]);
 
