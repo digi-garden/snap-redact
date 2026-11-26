@@ -23,13 +23,14 @@ import { mosaicBlockSize } from './lib/core/mosaicBlock';
 import { acceptsInput, canExport, canUndo } from './lib/core/selectors';
 import type { Op, Rect } from './lib/core/types';
 import { applyOp } from './lib/canvas/applyOp';
+import { renderAll } from './lib/canvas/renderAll';
 import { messages } from './messages';
 
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
  * 編集状態は editorReducer で持つ（docs/02 の 2.2）。
- * S9 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）、矩形の黒塗り・モザイク、キー操作（B・M・Esc・Ctrl+Z）。
- * Undo の描き直しは S10、出力（Ctrl+C を含む）は S11。
+ * S10 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）、矩形の黒塗り・モザイク、元に戻す・クリア、
+ * キー操作（B・M・Esc・Ctrl+Z）。出力（Ctrl+C を含む）は S11。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
@@ -78,17 +79,52 @@ export function App() {
     onCommit: commitRect,
   });
 
-  const inputEnabled = acceptsInput({ isModalOpen, isDragging: rectDrag.isDragging });
+  const { isDragging } = rectDrag;
+  const inputEnabled = acceptsInput({ isModalOpen, isDragging });
+
+  // 元に戻す（docs/02 の 3.9）：最後の操作を除いて、元画像から全体を描き直す
+  const undo = useCallback(() => {
+    if (!canvas || editor.status !== 'loaded' || editor.ops.length === 0 || isDragging) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      showToast('error', messages.toast.cannotProcess);
+      return;
+    }
+    work.current ??= document.createElement('canvas');
+    const ops = editor.ops.slice(0, -1);
+    try {
+      const started = import.meta.env.DEV ? performance.now() : 0;
+      const ok = renderAll(ctx, editor.base, ops, work.current);
+      if (import.meta.env.DEV) {
+        // 開発ビルドだけ計測する（02 の 6章。4K・操作 20 件で 100ms を超えたら対策を検討）
+        console.debug(
+          `[snap-redact] renderAll ${editor.width}×${editor.height}, ops ${ops.length}: ${(performance.now() - started).toFixed(1)}ms`,
+        );
+      }
+      // モザイクが描けず黒で代わりに塗ったときも、隠れてはいるので Undo は確定する
+      if (!ok) showToast('error', messages.toast.cannotProcess);
+    } catch {
+      // 元画像が描けない：clearRect 済みなので画面は空になり、隠すべき内容は見えない
+      showToast('error', messages.toast.cannotProcess);
+    }
+    dispatch({ type: 'UNDO' });
+  }, [canvas, editor, isDragging, showToast]);
+
+  // クリア（docs/02 の 3.10）：ドラッグ中は何もしない
+  const clear = useCallback(() => {
+    if (isDragging) return;
+    loader.clear();
+  }, [isDragging, loader]);
 
   // キー操作（docs/02 の 4章）。Ctrl+C は S11 で登録する
   useShortcuts({
     isModalOpen,
-    isDragging: rectDrag.isDragging,
+    isDragging,
     canUndo: canUndo(editor),
     canExport: canExport(editor),
     handlers: {
       cancelDrag: rectDrag.cancel,
-      undo: () => dispatch({ type: 'UNDO' }),
+      undo,
       modeFill: () => dispatch({ type: 'SET_MODE', mode: 'fill' }),
       modeMosaic: () => dispatch({ type: 'SET_MODE', mode: 'mosaic' }),
     },
@@ -113,8 +149,8 @@ export function App() {
         onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
         canUndo={canUndo(editor)}
         canClear={canExport(editor)}
-        onUndo={() => dispatch({ type: 'UNDO' })}
-        onClear={loader.clear}
+        onUndo={undo}
+        onClear={clear}
         keys={keys}
         showKeyHints={!mobileLike}
       />
