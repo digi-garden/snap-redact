@@ -16,8 +16,10 @@ import { useImageLoader } from './hooks/useImageLoader';
 import { usePasteImage } from './hooks/usePasteImage';
 import { usePlatform } from './hooks/usePlatform';
 import { useRectDrag } from './hooks/useRectDrag';
+import { useShortcuts } from './hooks/useShortcuts';
 import { useToast } from './hooks/useToast';
 import { editorReducer, initialEditorState } from './lib/core/editorReducer';
+import { mosaicBlockSize } from './lib/core/mosaicBlock';
 import { acceptsInput, canExport, canUndo } from './lib/core/selectors';
 import type { Op, Rect } from './lib/core/types';
 import { applyOp } from './lib/canvas/applyOp';
@@ -26,8 +28,8 @@ import { messages } from './messages';
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
  * 編集状態は editorReducer で持つ（docs/02 の 2.2）。
- * S8 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）と、矩形の黒塗り。
- * モザイクの描画は S9、Undo の描き直しは S10、出力は S11。
+ * S9 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）、矩形の黒塗り・モザイク、キー操作（B・M・Esc・Ctrl+Z）。
+ * Undo の描き直しは S10、出力（Ctrl+C を含む）は S11。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
@@ -47,24 +49,26 @@ export function App() {
 
   const isModalOpen = verifyOpen || loader.replacePending;
 
-  // 矩形を確定したら、操作を記録して、その操作だけを描く（docs/02 の 3.6）
+  // 矩形を確定したら、その操作だけを描き、描けたら記録する（docs/02 の 3.6）
   const work = useRef<HTMLCanvasElement | null>(null); // モザイク用の作業 Canvas（1枚を使い回す）
   const { canvas } = loader;
   const commitRect = useCallback(
     (rect: Rect) => {
       if (!canvas || editor.status !== 'loaded') return;
-      if (editor.mode !== 'fill') return; // モザイクは S9 で描けるようにする
+      const op: Op =
+        editor.mode === 'fill'
+          ? { kind: 'fill', rect }
+          : { kind: 'mosaic', rect, blockSize: mosaicBlockSize(editor.width, editor.height) };
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
+      work.current ??= document.createElement('canvas');
+      // 描けなかった操作は記録しない（隠れていないのに「隠した」履歴が残らないように）
+      if (!ctx || !applyOp(ctx, op, work.current)) {
         showToast('error', messages.toast.cannotProcess);
         return;
       }
-      work.current ??= document.createElement('canvas');
-      const op: Op = { kind: 'fill', rect };
       dispatch({ type: 'ADD_OP', op });
-      applyOp(ctx, op, work.current);
     },
-    [canvas, editor.status, editor.mode, showToast],
+    [canvas, editor, showToast],
   );
   const rectDrag = useRectDrag({
     canvas,
@@ -75,6 +79,20 @@ export function App() {
   });
 
   const inputEnabled = acceptsInput({ isModalOpen, isDragging: rectDrag.isDragging });
+
+  // キー操作（docs/02 の 4章）。Ctrl+C は S11 で登録する
+  useShortcuts({
+    isModalOpen,
+    isDragging: rectDrag.isDragging,
+    canUndo: canUndo(editor),
+    canExport: canExport(editor),
+    handlers: {
+      cancelDrag: rectDrag.cancel,
+      undo: () => dispatch({ type: 'UNDO' }),
+      modeFill: () => dispatch({ type: 'SET_MODE', mode: 'fill' }),
+      modeMosaic: () => dispatch({ type: 'SET_MODE', mode: 'mosaic' }),
+    },
+  });
   usePasteImage({ enabled: inputEnabled, onImage: loadFile, onNoImage: notifyNoImage });
   const { isOver } = useDropImage({
     enabled: inputEnabled,

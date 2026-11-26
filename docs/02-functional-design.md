@@ -1,8 +1,9 @@
-# 機能設計書：Snap-Redact（MVP）v1.4
+# 機能設計書：Snap-Redact（MVP）v1.5
 
 最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.5（2026-11-26）：S9 の実装に合わせ、操作は「描けたら記録する」順に変更（3.6）。ダイアログ表示中の `Esc` はダイアログ自身が閉じることを明記（4章）
 * v1.4（2026-11-26）：S8 の実装で見つけた `toRect` の判定の抜けを修正（画像の完全に外側で幅・高さが負になる場合。3.5.2）
 * v1.3（2026-11-26）：S7 でサイズ上限を確定（8章 #2）
 * v1.2（2026-11-25）：S5 の実装に合わせ、`EditorState` を型引数 `TImage` で元画像を受け取る形に変更
@@ -256,9 +257,12 @@ function toRect(a: Point, b: Point, width: number, height: number): Rect | null 
 1. op を作る
    fill   → { kind: 'fill', rect }
    mosaic → { kind: 'mosaic', rect, blockSize: mosaicBlockSize(width, height) }
-2. ADD_OP を発行
-3. 追加した op だけをキャンバスに描く（applyOp、3.8）。全体の描き直しはしない
+2. 追加した op だけをキャンバスに描く（applyOp、3.8）。全体の描き直しはしない
+3. 描けたら ADD_OP を発行。描けなかったら（作業用 Canvas の getContext が null など）TS-05 を出し、記録しない
 ```
+
+* 描いてから記録する：描けなかった操作が履歴に残ると、画面では隠れていないのに「隠した」ことになり、Undo の描き直しで初めて反映されるなど、見た目と履歴がずれるため（S9 で変更）
+* モザイクは、作業用 Canvas が使えないと分かった時点で、描画先に触れずに失敗を返す（元の画素を消したまま戻せない状態にしない）
 
 #### 3.6.1 黒塗り
 
@@ -386,7 +390,7 @@ canvas.toBlob(cb, 'image/png')
 | 判定の順番 | 条件 | 動作 |
 | :--- | :--- | :--- |
 | 1 | `e.isComposing`（日本語入力の変換中） | 何もしない |
-| 2 | ダイアログ表示中 | `Esc` だけ扱う（ダイアログを閉じる）。ほかは何もしない |
+| 2 | ダイアログ表示中 | 何もしない。`Esc` はネイティブの `<dialog>` の `cancel` でダイアログ自身が閉じる（二重に閉じないよう、ここでは扱わない） |
 | 3 | `Esc` かつドラッグ中 | ドラッグを破棄 |
 | 4 | `Ctrl+Z` / `⌘Z`（Shift なし） | `canUndo` かつドラッグ中でなければ `preventDefault()` → F-08 |
 | 5 | `Ctrl+C` / `⌘C` | `canExport`、ドラッグ中でない、かつ選択中のテキストが空（`(window.getSelection()?.toString() ?? '') === ''`）なら `preventDefault()` → F-10。それ以外は何もしない（ブラウザ既定のコピー） |
@@ -395,6 +399,9 @@ canvas.toBlob(cb, 'image/png')
 * `Ctrl` と `⌘` の判定：`e.ctrlKey || e.metaKey`
 * キーは `e.key` を小文字にして比べる（`Caps Lock` 対策）
 * `Ctrl+V` はキーではなく `paste` イベント（3.1）で扱う
+* 日本語入力の変換中は `isComposing` に加え、`keyCode === 229` も変換中として扱う（確定の直後に `isComposing` が false で届くブラウザがあるため）
+* `B` / `M` は Shift 付きも扱わない（`Caps Lock` 中は Shift なしで `e.key = 'B'` が届くので、切り替えられる）
+* 判定は `lib/core/shortcuts.ts` の純粋関数で行い、処理が登録されている動作だけ `preventDefault()` する（S11 までは `Ctrl+C` を登録しないので、既定のコピーのまま）
 
 ---
 
@@ -409,6 +416,7 @@ canvas.toBlob(cb, 'image/png')
 | 貼り付けで `getAsFile()` が `null` | 3.1 | TS-01 | なし |
 | 読み込み中に次の読み込みが来た | 3.4 手順2 | なし（古い方を黙って捨てる） | なし |
 | 読み込む画像の Canvas が作れない・描けない | 3.4 手順4 | TS-05 | なし（編集中の画像はそのまま） |
+| 黒塗り・モザイクが描けない | 3.6 | TS-05 | なし（操作を記録しない） |
 | Undo の描き直しで例外 | 3.8 | TS-05 | なし |
 | ダウンロードの `toBlob` が `null` | 3.12 | TS-05 | なし（編集内容は残す） |
 | コピー失敗・非対応 | 3.11 | TS-07 | なし |
