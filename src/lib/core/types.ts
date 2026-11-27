@@ -32,5 +32,9 @@ export type EditorAction<TImage> =
   | { type: 'ADD_OP'; op: Op }
   | { type: 'UNDO' }
   | { type: 'CLEAR' }
-  | { type: 'EXPORTED' }
+  /**
+   * コピー・ダウンロードの成功。ops は書き出しを始めた時点の ops（同じ配列のときだけ保存済みにする。
+   * 書き出しの完了前に編集・元に戻す・読み込みがあれば、配列が替わっているので未保存のまま）
+   */
+  | { type: 'EXPORTED'; ops: readonly Op[] }
   | { type: 'SET_MODE'; mode: Mode };

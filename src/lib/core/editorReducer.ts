@@ -37,6 +37,8 @@ export function editorReducer<TImage>(
 
     case 'EXPORTED':
       if (state.status !== 'loaded' || !state.unsaved) return state;
+      // 書き出しの完了前に ops が替わった（編集・元に戻す・読み込み）なら、書き出したのは古い内容なので未保存のまま
+      if (state.ops !== action.ops) return state;
       return { ...state, unsaved: false };
 
     case 'CLEAR':

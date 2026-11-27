@@ -1,8 +1,9 @@
-# 機能設計書：Snap-Redact（MVP）v1.7
+# 機能設計書：Snap-Redact（MVP）v1.8
 
 最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.8（2026-11-27）：P5 レビューを反映し、`EXPORTED` に書き出し開始時点の ops を持たせる（2.2、3.11、3.12）
 * v1.7（2026-11-27）：S11 の実装に合わせ、ダウンロード後に Blob URL を解放するまでの時間を変更（3.12）
 * v1.6（2026-11-26）：S10 の実装に合わせ、Undo の描き直しに失敗したときの扱いを変更（3.8・3.9）
 * v1.5（2026-11-26）：S9 の実装に合わせ、操作は「描けたら記録する」順に変更（3.6）。ダイアログ表示中の `Esc` はダイアログ自身が閉じることを明記（4章）
@@ -74,10 +75,11 @@ type EditorState<TImage> =
 | `ADD_OP { op }` | F-06 | 無視 | ops の末尾に追加、unsaved = true |
 | `UNDO` | F-08 | 無視 | ops が 1 件以上なら末尾を削除し unsaved = true。0 件なら変化なし |
 | `CLEAR` | F-09 | 無視 | empty（mode は引き継ぐ） |
-| `EXPORTED` | F-10, F-11 の成功時 | 無視 | unsaved = false |
+| `EXPORTED { ops }` | F-10, F-11 の成功時 | 無視 | ops が書き出し開始時点の ops と同じ配列なら unsaved = false。違えば変化なし |
 | `SET_MODE { mode }` | F-07 | mode を変更 | mode を変更 |
 
 * 状態が変わらないアクション（empty での `ADD_OP` など、同じ mode の `SET_MODE`、保存済みでの `EXPORTED`）は、同じオブジェクトを返す（React の再描画を避ける。S5 で実装）
+* `EXPORTED` の `ops` は、コピー・ダウンロードを始めた時点の ops。`toBlob` の完了前に編集・元に戻す・読み込みがあると ops の配列が替わるので、書き出したのは古い内容と判断し、未保存のまま残す（参照の比較なので、件数が同じでも別の編集なら未保存のまま）。これがないと、未保存の編集があるのに DL-01 が出なくなる（P5 レビューで修正）
 * reducer は「新しい状態」だけを返す。前の `base` を `close()` するのは、状態が変わったあとの処理（3.4 手順6、3.10）で行う
 
 ### 2.3 画面だけの状態（reducer の外）
@@ -364,7 +366,7 @@ async function copyImage(canvas: HTMLCanvasElement): Promise<'ok' | 'unsupported
 
 | 結果 | 処理 |
 | :--- | :--- |
-| `ok` | `EXPORTED` を発行、TS-06「コピーしました。そのまま貼り付けできます」 |
+| `ok` | `EXPORTED`（開始時点の ops）を発行、TS-06「コピーしました。そのまま貼り付けできます」 |
 | `unsupported` / `failed` | TS-07「コピーできませんでした。ダウンロードをご利用ください」 |
 
 * ボタンのクリック、または `Ctrl+C` の `keydown` の中で、`await` を挟まずに呼ぶ（ユーザー操作の判定を切らさない）
@@ -376,7 +378,7 @@ async function copyImage(canvas: HTMLCanvasElement): Promise<'ok' | 'unsupported
 canvas.toBlob(cb, 'image/png')
   ├─ null → TS-05、終了
   └─ Blob → URL.createObjectURL → <a download="redacted_image.png"> を作ってクリック
-            → 1秒後に URL.revokeObjectURL → EXPORTED を発行 → TS-08
+            → 1秒後に URL.revokeObjectURL → EXPORTED（開始時点の ops）を発行 → TS-08
 ```
 
 * Canvas から書き出すので、元画像の EXIF などのメタデータは出力に含まれない（OUT-4）

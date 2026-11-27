@@ -255,3 +255,26 @@ test('ダウンロード：redacted_image.png で、画面と同じ画素、メ�
   }, file.toString('base64'));
   expect(same).toBe('same');
 });
+
+test.describe('コピー（Chromium のみ）', () => {
+  // WebKit の Playwright はクリップボードへの書き込みの権限を与えられないため、Chromium だけで確かめる。
+  // ページからの読み出しは Permissions-Policy（clipboard-read=()）で止めているので、書き込みの成功（TS-06）までを確かめる。
+  // 貼り付け先での表示（MT-16）は手で確かめる
+  test.skip(({ browserName }) => browserName !== 'chromium', 'Chromium のみ');
+
+  test('ボタンと Ctrl+C でコピーでき、TS-06 が出る', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-write']);
+    await loadImage(page, 900, 500, 'text-on-white');
+    await dragOnImage(page, { x: 90, y: 130 }, { x: 850, y: 230 });
+
+    const toast = page.getByRole('button', { name: 'コピーしました。そのまま貼り付けできます' });
+    await page.getByRole('button', { name: /画像をコピー/ }).click();
+    await expect(toast).toBeVisible();
+    await toast.click(); // 閉じる
+    await expect(toast).toBeHidden(); // Ctrl+C の結果と取り違えないように、一度消えたことを確かめる
+
+    await page.locator('body').click({ position: { x: 5, y: 5 } }); // ボタンからフォーカスを外す
+    await page.keyboard.press('Control+c');
+    await expect(toast).toBeVisible();
+  });
+});

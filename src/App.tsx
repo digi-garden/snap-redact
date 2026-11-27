@@ -127,30 +127,33 @@ export function App() {
   }, [isDragging, loader, releaseWork]);
 
   // コピー（docs/02 の 3.11）：ボタンのクリック・Ctrl+C の keydown の中で、await を挟まずに copyImage を呼ぶ
+  // toBlob は呼んだ時点の画素を書き出す。完了前に編集されてもよいよう、開始時点の ops を EXPORTED に渡す
   const copy = useCallback(() => {
     if (!canvas || editor.status !== 'loaded' || isDragging) return;
+    const { ops } = editor;
     void copyImage(canvas).then((result) => {
       if (result === 'ok') {
-        dispatch({ type: 'EXPORTED' });
+        dispatch({ type: 'EXPORTED', ops });
         showToast('success', messages.toast.copied);
       } else {
         showToast('error', messages.toast.copyFailed);
       }
     });
-  }, [canvas, editor.status, isDragging, showToast]);
+  }, [canvas, editor, isDragging, showToast]);
 
   // ダウンロード（docs/02 の 3.12）
   const download = useCallback(() => {
     if (!canvas || editor.status !== 'loaded' || isDragging) return;
+    const { ops } = editor;
     void downloadImage(canvas).then((result) => {
       if (result === 'ok') {
-        dispatch({ type: 'EXPORTED' });
+        dispatch({ type: 'EXPORTED', ops });
         showToast('success', messages.toast.downloaded);
       } else {
         showToast('error', messages.toast.cannotProcess);
       }
     });
-  }, [canvas, editor.status, isDragging, showToast]);
+  }, [canvas, editor, isDragging, showToast]);
 
   // キー操作（docs/02 の 4章）
   useShortcuts({
