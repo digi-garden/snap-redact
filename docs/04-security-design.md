@@ -190,9 +190,10 @@ const restrictedSyntax = [
 | # | 確認内容 | 理由 |
 | :--- | :--- | :--- |
 | 1 | `dist/_headers` が存在し、`connect-src 'none'` が含まれている。`dist/snap-redact/index.html` が存在する（出力先の設定漏れを検出） | CSP の設定漏れ・書き間違いを防ぐ |
-| 2 | `dist/` の JS・CSS・HTML・SVG に、許可した URL 以外の `http://` / `https://` / `ws://` / `wss://` が含まれていない（プロトコル相対の `//…` は JS のコメントと区別できないため対象外。実行時は CSP が止める） | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
+| 2 | `dist/` の JS・CSS・HTML・SVG に、許可した URL 以外の `http://` / `https://` / `ws://` / `wss://` が含まれていない（プロトコル相対の `//…` は JS のコメントと区別できないため対象外。実行時は CSP が止める） | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、`digi-garden.com` のトップ・利用規約・プライバシーポリシー、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
 | 3 | `dist/` 配下のすべての `.html`（本体は `dist/snap-redact/index.html`）にインラインの `<script>`（`src` のないもの）と `<style>` がない。`.svg` に `<script>` がない | CSP の `script-src 'self'` で動かなくなるのを事前に検出する |
 | 4 | CSS・HTML・SVG に `data:` URI の埋め込みがない（JS は文字列として `data:` を含みうるため対象外。実行時は CSP の `img-src 'self'` が止める） | `img-src 'self'` で表示されなくなるのを防ぐ |
+| 5 | `dist/snap-redact/third-party-licenses/index.html` が存在する（S12 で追加） | 第三者ライセンスの表示の漏れを防ぐ（2.3.1） |
 
 * 3.1 の ESLint は自分のソースだけを見るが、こちらは依存ライブラリを含めた最終成果物を見る
 * 依存ライブラリの中に `fetch` という文字列があっても、それだけでは失敗にしない（React 自体が含む場合がある）。実行時は CSP が止める
