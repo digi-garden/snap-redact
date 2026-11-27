@@ -1,8 +1,9 @@
-# セキュリティ設計書：Snap-Redact（MVP）v1.1
+# セキュリティ設計書：Snap-Redact（MVP）v1.3
 
-最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（特に 2章 柱A、6.1） ／ 関連：`docs/03-architecture.md` v1.1、`docs/05-devenv-cicd.md` v1.1
+最終更新：2026-11-27 ／ 対象要件：`docs/requirements.md` v1.2（特に 2章 柱A、6.1） ／ 関連：`docs/03-architecture.md` v1.1、`docs/05-devenv-cicd.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.3（2026-11-27）：S12 で第三者ライセンスの配信を実装（2.3.1）。成果物検査の許可 URL に digi-garden.com の規約などを追加
 * v1.2（2026-11-24）：P1 のフェーズレビューを反映（`sendBeacon`・`serviceWorker` をどのオブジェクト経由でも禁止、`cookie`・`cookieStore`・`navigation` を追加、成果物検査に `ws(s)://` と SVG を追加、文字列参照の対象を拡大）
 * v1.1（2026-11-22）：外部レビュー2回目と再確認を反映（成果物検査の対象パスを含む。ESLint の禁止を参照そのものの禁止に変更、`upgrade-insecure-requests` の削除、`_headers` の配置、ESLint の限界の明記）
 
@@ -94,7 +95,7 @@
 | `worker-src` | `'self'`（Context-Packer） | `'none'` | Web Worker を使わない |
 | 追加したヘッダー | ― | `X-Frame-Options`、`Cross-Origin-*`、`Permissions-Policy` の `clipboard-read=()` | 使わない機能を閉じる |
 | ソースマップ | 本番に含めない（Context-Packer の検査で禁止） | 含める | Public リポジトリなので隠す理由がなく、利用者がコードを確かめやすい（05 の 3章） |
-| 第三者ライセンス | `/<ツール名>/third-party-licenses/` で配信 | **S12 で同様に用意する** | React などの MIT ライセンスの表示義務を満たすため |
+| 第三者ライセンス | `/<ツール名>/third-party-licenses/` で配信（一覧は `README.md`） | `/snap-redact/third-party-licenses/` で配信（S12）。一覧は `index.html`、原文は `.txt` | React などの MIT ライセンスの表示義務を満たすため。ブラウザでそのまま読めるよう HTML とテキストにした。実行時の依存（react・react-dom・scheduler）に加え、生成した CSS に含まれる tailwindcss の原文も含める。`check-dist` で一覧の有無を確かめる |
 
 * `upgrade-insecure-requests` は入れない。`http://` の参照は `check-dist.mjs`（4章）が CI で検出して失敗させるため、効く場面がほとんどない。入れないことで、本番と手元（`vite preview`）の CSP を同じにできる
 
@@ -189,9 +190,10 @@ const restrictedSyntax = [
 | # | 確認内容 | 理由 |
 | :--- | :--- | :--- |
 | 1 | `dist/_headers` が存在し、`connect-src 'none'` が含まれている。`dist/snap-redact/index.html` が存在する（出力先の設定漏れを検出） | CSP の設定漏れ・書き間違いを防ぐ |
-| 2 | `dist/` の JS・CSS・HTML・SVG に、許可した URL 以外の `http://` / `https://` / `ws://` / `wss://` が含まれていない（プロトコル相対の `//…` は JS のコメントと区別できないため対象外。実行時は CSP が止める） | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
+| 2 | `dist/` の JS・CSS・HTML・SVG に、許可した URL 以外の `http://` / `https://` / `ws://` / `wss://` が含まれていない（プロトコル相対の `//…` は JS のコメントと区別できないため対象外。実行時は CSP が止める） | 外部のスクリプト・画像・フォントの参照を防ぐ（T1, T2）。許可：`circle-note.com`、`github.com/digi-garden`、`digi-garden.com` のトップ・利用規約・プライバシーポリシー、React などが埋め込むライセンス表記や仕様の URL（一覧はスクリプト内に持つ） |
 | 3 | `dist/` 配下のすべての `.html`（本体は `dist/snap-redact/index.html`）にインラインの `<script>`（`src` のないもの）と `<style>` がない。`.svg` に `<script>` がない | CSP の `script-src 'self'` で動かなくなるのを事前に検出する |
 | 4 | CSS・HTML・SVG に `data:` URI の埋め込みがない（JS は文字列として `data:` を含みうるため対象外。実行時は CSP の `img-src 'self'` が止める） | `img-src 'self'` で表示されなくなるのを防ぐ |
+| 5 | `dist/snap-redact/third-party-licenses/index.html` が存在する（S12 で追加） | 第三者ライセンスの表示の漏れを防ぐ（2.3.1） |
 
 * 3.1 の ESLint は自分のソースだけを見るが、こちらは依存ライブラリを含めた最終成果物を見る
 * 依存ライブラリの中に `fetch` という文字列があっても、それだけでは失敗にしない（React 自体が含む場合がある）。実行時は CSP が止める

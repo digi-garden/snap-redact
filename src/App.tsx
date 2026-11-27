@@ -10,6 +10,7 @@ import { MosaicNotice } from './components/MosaicNotice';
 import { SelectionOverlay } from './components/SelectionOverlay';
 import { Toast } from './components/Toast';
 import { Toolbar } from './components/Toolbar';
+import { UsageGuide } from './components/UsageGuide';
 import { VerifyDialog } from './components/VerifyDialog';
 import { useDropImage } from './hooks/useDropImage';
 import { useImageLoader } from './hooks/useImageLoader';
@@ -177,53 +178,57 @@ export function App() {
   });
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
-      <Header compact={mobileLike} onOpenVerify={() => setVerifyOpen(true)} />
-      {mobileLike && !mobileNoticeClosed && (
-        <MobileNotice onClose={() => setMobileNoticeClosed(true)} />
-      )}
-      <Toolbar
-        mode={editor.mode}
-        onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
-        canUndo={canUndo(editor)}
-        canClear={canExport(editor)}
-        onUndo={undo}
-        onClear={clear}
-        keys={keys}
-        showKeyHints={!mobileLike}
-      />
-      {editor.mode === 'mosaic' && <MosaicNotice />}
-      <CanvasStage
-        canvas={canvas}
-        dropping={isOver}
-        selection={
-          canvas &&
-          rectDrag.rect &&
-          editor.status === 'loaded' && (
-            <SelectionOverlay
-              canvas={canvas}
-              rect={rectDrag.rect}
-              width={editor.width}
-              height={editor.height}
-              mode={editor.mode}
-            />
-          )
-        }
-        empty={<EmptyState keys={keys} mobileLike={mobileLike} onFile={loadFile} />}
-      />
-      <ActionBar
-        canExport={canExport(editor)}
-        info={
-          editor.status === 'loaded'
-            ? messages.imageInfo(editor.width, editor.height, editor.ops.length)
-            : null
-        }
-        onCopy={copy}
-        onDownload={download}
-        keys={keys}
-        showKeyHints={!mobileLike}
-      />
-      <Footer />
+    <>
+      {/* 編集の画面は画面の高さいっぱい（UI-4）。用途・使い方とフッターは、スクロールした先に置く */}
+      <div className="flex h-dvh flex-col overflow-hidden">
+        <Header compact={mobileLike} onOpenVerify={() => setVerifyOpen(true)} />
+        {mobileLike && !mobileNoticeClosed && (
+          <MobileNotice onClose={() => setMobileNoticeClosed(true)} />
+        )}
+        <Toolbar
+          mode={editor.mode}
+          onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
+          canUndo={canUndo(editor)}
+          canClear={canExport(editor)}
+          onUndo={undo}
+          onClear={clear}
+          keys={keys}
+          showKeyHints={!mobileLike}
+        />
+        {editor.mode === 'mosaic' && <MosaicNotice />}
+        <CanvasStage
+          canvas={canvas}
+          dropping={isOver}
+          selection={
+            canvas &&
+            rectDrag.rect &&
+            editor.status === 'loaded' && (
+              <SelectionOverlay
+                canvas={canvas}
+                rect={rectDrag.rect}
+                width={editor.width}
+                height={editor.height}
+                mode={editor.mode}
+              />
+            )
+          }
+          empty={<EmptyState keys={keys} mobileLike={mobileLike} onFile={loadFile} />}
+        />
+        <ActionBar
+          canExport={canExport(editor)}
+          info={
+            editor.status === 'loaded'
+              ? messages.imageInfo(editor.width, editor.height, editor.ops.length)
+              : null
+          }
+          onCopy={copy}
+          onDownload={download}
+          keys={keys}
+          showKeyHints={!mobileLike}
+        />
+      </div>
+      <UsageGuide keys={keys} />
+      <Footer onOpenSafety={() => setVerifyOpen(true)} />
       <Toast toast={toast} onDismiss={dismiss} />
       <ConfirmReplaceDialog
         open={loader.replacePending}
@@ -231,6 +236,6 @@ export function App() {
         onConfirm={loader.confirmReplace}
       />
       <VerifyDialog open={verifyOpen} onClose={() => setVerifyOpen(false)} />
-    </div>
+    </>
   );
 }

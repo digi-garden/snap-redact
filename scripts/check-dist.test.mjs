@@ -36,6 +36,7 @@ function makeGoodDist() {
     'const ns="http://www.w3.org/2000/svg";const e="https://react.dev/errors/1";',
   );
   put('snap-redact/assets/index.css', 'body{color:red}');
+  put('snap-redact/third-party-licenses/index.html', '<!doctype html><title>OSS</title>');
 }
 
 beforeEach(() => {
@@ -73,6 +74,12 @@ describe('checkDist', () => {
     makeGoodDist();
     rmSync(join(dist, 'snap-redact', 'index.html'));
     expect(checkDist(dist).join()).toMatch(/index\.html がありません/);
+  });
+
+  it('第三者のライセンスの一覧がないと失敗する', () => {
+    makeGoodDist();
+    rmSync(join(dist, 'snap-redact', 'third-party-licenses'), { recursive: true });
+    expect(checkDist(dist).join()).toMatch(/third-party-licenses/);
   });
 
   it('JS に許可していない URL があると失敗する', () => {

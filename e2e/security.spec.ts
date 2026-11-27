@@ -7,8 +7,7 @@ test('CSP（connect-src none）が付き、同じオリジン以外へのリク�
   const failed: string[] = [];
   page.on('request', (r) => requests.push(r.url()));
   page.on('response', (r) => {
-    // ファビコンは S12 で入れる。それまではブラウザが自動で取りに行く /favicon.ico の 404 だけ除外する（S12 で外す）
-    if (r.status() >= 400 && new URL(r.url()).pathname !== '/favicon.ico') {
+    if (r.status() >= 400) {
       failed.push(`${r.status()} ${r.url()}`);
     }
   });
@@ -42,4 +41,22 @@ test('CSP によって、ページの中からの fetch は止められる', asy
     }
   });
   expect(result).toBe('blocked');
+});
+
+test('ファビコンと OSS ライセンスの一覧が同じオリジンから配信される', async ({ page, request }) => {
+  await page.goto('./');
+  const icon = await page.locator('link[rel=icon][type="image/svg+xml"]').getAttribute('href');
+  expect(icon).toBe('/snap-redact/favicon.svg');
+  expect((await request.get(icon!)).ok()).toBe(true);
+
+  const licenses = await request.get('third-party-licenses/');
+  expect(licenses.ok()).toBe(true);
+  const html = await licenses.text();
+  for (const name of ['react@', 'react-dom@', 'scheduler@', 'tailwindcss@'])
+    expect(html).toContain(name);
+  const first = /href="\.\/([^"]+\.txt)"/.exec(html)?.[1];
+  expect(first).toBeTruthy();
+  const text = await request.get(`third-party-licenses/${first}`);
+  expect(text.ok()).toBe(true);
+  expect(await text.text()).toMatch(/Permission is hereby granted|MIT/);
 });
