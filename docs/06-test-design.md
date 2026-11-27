@@ -1,10 +1,11 @@
-# テスト設計書：Snap-Redact（MVP）v1.2
+# テスト設計書：Snap-Redact（MVP）v1.3
 
 最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2 ／ 関連：`docs/01`〜`05`
 
 * v1.0（2026-11-22）：初版
 * v1.1（2026-11-22）：外部レビュー2回目を反映（`useImageLoader` のテスト追加、ESLint の検査用ファイルの内容、ダイアログ表示中の入力の手動確認、手動確認の作業時間の目安）
 
+* v1.3（2026-11-27）：P5 レビューを反映し、UT-RED-11（書き出しの完了前の編集）を追加
 * v1.2（2026-11-26）：P4 の後に E2E（WebKit・Chromium）を追加。Mac がないため、Safari の確かめ方を変更（1章、4.2）
 
 基本設計の資料 6/6。何を、どの段階で、どう確かめるかを定め、要件 → 設計 → テストの対応表で抜けを確認する。
@@ -68,6 +69,7 @@
 | UT-RED-08 | empty で ADD_OP / UNDO / EXPORTED / CLEAR | 状態が変わらない |
 | UT-RED-09 | SET_MODE（empty・loaded の両方） | mode だけ変わる |
 | UT-RED-10 | 前の状態を書き換えていない（不変性） | 前の状態のオブジェクトと配列が変わっていない |
+| UT-RED-11 | 書き出しの開始後、完了前に ADD_OP／UNDO／UNDO して同じ件数まで編集／別画像の LOAD をしてから EXPORTED | どれも unsaved が変わらない（未保存のまま） |
 
 #### `lib/core/selectors.ts`（02 の 2.4）
 

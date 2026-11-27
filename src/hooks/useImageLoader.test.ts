@@ -260,7 +260,9 @@ describe('useImageLoader', () => {
 
     it('保存済み（EXPORTED の後）なら確認せずに差し替える', async () => {
       const { result, b } = await editedSetup();
-      act(() => result.current.dispatch({ type: 'EXPORTED' }));
+      const { editor } = result.current;
+      const ops = editor.status === 'loaded' ? editor.ops : [];
+      act(() => result.current.dispatch({ type: 'EXPORTED', ops }));
       await act(() => result.current.load(png('b.png')));
       expect(result.current.replacePending).toBe(false);
       expect(result.current.editor).toMatchObject({ base: b });
