@@ -39,6 +39,12 @@ export const messages = {
     notLoaded: '画像が読み込まれていません',
   },
 
+  /** 想定外のエラー（docs/02 の 5章）。再読み込みのボタンは置かない（location の参照を禁止しているため） */
+  crashed: {
+    title: '問題が発生しました',
+    body: 'ページを再読み込みしてください（F5 キー、または ⌘R）。画像はこのタブの中だけにあったため、編集内容は失われます。',
+  },
+
   /** CircleNote の共通シェル（brand-assets の templates/circlenote） */
   brand: 'CircleNote',
 
@@ -49,6 +55,7 @@ export const messages = {
     contextPacker: 'Context-Packer',
     vramCalculator: 'VRAM Calculator',
     policyLabel: '利用規約・プライバシー等',
+    licenses: 'OSSライセンス',
     terms: '利用規約',
     privacy: 'プライバシーポリシー',
     github: 'GitHub',

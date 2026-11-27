@@ -29,6 +29,9 @@ export function Footer() {
           </a>
         </nav>
         <nav aria-label={t.policyLabel} className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+          <a href="/snap-redact/third-party-licenses/" {...external} className={textLink}>
+            {t.licenses}
+          </a>
           <a href="https://digi-garden.com/terms/" {...external} className={textLink}>
             {t.terms}
           </a>

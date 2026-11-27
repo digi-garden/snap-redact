@@ -1,8 +1,9 @@
-# セキュリティ設計書：Snap-Redact（MVP）v1.1
+# セキュリティ設計書：Snap-Redact（MVP）v1.3
 
-最終更新：2026-11-22 ／ 対象要件：`docs/requirements.md` v1.2（特に 2章 柱A、6.1） ／ 関連：`docs/03-architecture.md` v1.1、`docs/05-devenv-cicd.md` v1.1
+最終更新：2026-11-27 ／ 対象要件：`docs/requirements.md` v1.2（特に 2章 柱A、6.1） ／ 関連：`docs/03-architecture.md` v1.1、`docs/05-devenv-cicd.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.3（2026-11-27）：S12 で第三者ライセンスの配信を実装（2.3.1）。成果物検査の許可 URL に digi-garden.com の規約などを追加
 * v1.2（2026-11-24）：P1 のフェーズレビューを反映（`sendBeacon`・`serviceWorker` をどのオブジェクト経由でも禁止、`cookie`・`cookieStore`・`navigation` を追加、成果物検査に `ws(s)://` と SVG を追加、文字列参照の対象を拡大）
 * v1.1（2026-11-22）：外部レビュー2回目と再確認を反映（成果物検査の対象パスを含む。ESLint の禁止を参照そのものの禁止に変更、`upgrade-insecure-requests` の削除、`_headers` の配置、ESLint の限界の明記）
 
@@ -94,7 +95,7 @@
 | `worker-src` | `'self'`（Context-Packer） | `'none'` | Web Worker を使わない |
 | 追加したヘッダー | ― | `X-Frame-Options`、`Cross-Origin-*`、`Permissions-Policy` の `clipboard-read=()` | 使わない機能を閉じる |
 | ソースマップ | 本番に含めない（Context-Packer の検査で禁止） | 含める | Public リポジトリなので隠す理由がなく、利用者がコードを確かめやすい（05 の 3章） |
-| 第三者ライセンス | `/<ツール名>/third-party-licenses/` で配信 | **S12 で同様に用意する** | React などの MIT ライセンスの表示義務を満たすため |
+| 第三者ライセンス | `/<ツール名>/third-party-licenses/` で配信（一覧は `README.md`） | `/snap-redact/third-party-licenses/` で配信（S12）。一覧は `index.html`、原文は `.txt` | React などの MIT ライセンスの表示義務を満たすため。ブラウザでそのまま読めるよう HTML とテキストにした。実行時の依存（react・react-dom・scheduler）に加え、生成した CSS に含まれる tailwindcss の原文も含める。`check-dist` で一覧の有無を確かめる |
 
 * `upgrade-insecure-requests` は入れない。`http://` の参照は `check-dist.mjs`（4章）が CI で検出して失敗させるため、効く場面がほとんどない。入れないことで、本番と手元（`vite preview`）の CSP を同じにできる
 

@@ -103,7 +103,7 @@ CircleNote の共通フッター（brand-assets の `CircleNoteFooter`）の3行
 | 行 | 内容 |
 | :--- | :--- |
 | 1行目（他のツール） | 「テキストの機密を隠すなら → Mask & Unmask」、「Context-Packer」、「VRAM Calculator」（`https://circle-note.com/<ツール>/`） |
-| 2行目（規約など） | 「OSSライセンス」（S12b で追加）、「利用規約」（`https://digi-garden.com/terms/`）、「プライバシーポリシー」（`https://digi-garden.com/privacy/`）、「GitHub」 |
+| 2行目（規約など） | 「OSSライセンス」（`/snap-redact/third-party-licenses/`）、「利用規約」（`https://digi-garden.com/terms/`）、「プライバシーポリシー」（`https://digi-garden.com/privacy/`）、「GitHub」 |
 | 3行目（提供元） | 免責文「隠し漏れの最終確認は利用者が行ってください」、「by digi-garden」（`https://digi-garden.com/`）、「© 2026 digi-garden」 |
 
 * リンクはすべて新しいタブで開く（`target="_blank" rel="noopener noreferrer"`）。同じタブで移動すると、メモリ上だけにある編集中の画像が消えるため

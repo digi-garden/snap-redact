@@ -28,7 +28,7 @@
 | スクリプト | 内容 | 用途 |
 | :--- | :--- | :--- |
 | `dev` | `vite` | 開発サーバー（CSP ヘッダーは付かない） |
-| `build` | `vite build && node scripts/copy-deploy-files.mjs` | 本番ビルド（本体は `dist/snap-redact/`、`_headers`・`_redirects` は `dist/` 直下） |
+| `build` | `vite build && node scripts/copy-deploy-files.mjs && node scripts/copy-licenses.mjs` | 本番ビルド（本体は `dist/snap-redact/`、`_headers`・`_redirects` は `dist/` 直下、第三者のライセンスは `dist/snap-redact/third-party-licenses/`） |
 | `preview` | `vite preview` | ビルド結果の確認。`_headers` 相当のヘッダーを付けて CSP を確かめる（2.1） |
 | `typecheck` | `tsc -p` を `tsconfig.app` / `core` / `node` / `e2e` の4つで実行 | 型チェック（`lib/core` は DOM なしの設定で別に検査する） |
 | `lint` | `eslint . --max-warnings 0 --report-unused-disable-directives` | lint（警告も失敗扱い） |
@@ -104,7 +104,7 @@
 * 内容（`e2e/`）
   * `editor.spec.ts`：ファイル選択で読み込み → 黒塗り（範囲が不透明の黒、文字の画素が残らない、元に戻すと元の画像と一致）、透過 PNG のモザイク（ブロックごとに単色、範囲の外に文字が残らない）、ドラッグ中の `Esc`、ダウンロード（ファイル名、画面と同じ画素、メタデータのチャンクがないこと。S11 で追加）
   * コピー（Chromium のみ）：ボタンと `Ctrl+C` で書き込みが成功し、TS-06 が出ること。WebKit の Playwright にはクリップボードへの書き込みの権限を与えられないため。ページからの読み出しは `Permissions-Policy` で止めているので、貼り付け先での表示は手で確かめる（P5 レビューで追加）
-  * `security.spec.ts`：CSP（`connect-src 'none'`）が付くこと、同じオリジン以外へのリクエストがないこと、ページの中からの `fetch` が止められること
+  * `security.spec.ts`：CSP（`connect-src 'none'`）が付くこと、同じオリジン以外へのリクエストがないこと（404 などの失敗もないこと）、ページの中からの `fetch` が止められること、ファビコンと OSS ライセンスの一覧が配信されること（S12 で追加）
 * クリップボード（貼り付け・コピー）は自動化しにくいため対象外。手動確認（06 の 4章）で確かめる
 * Playwright の WebKit は Safari そのものではない（macOS・iOS の Safari と挙動が違う場合がある）。本物の Safari は公開前に一度確かめる
 

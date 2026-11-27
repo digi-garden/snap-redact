@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/copy-deploy-files.mjs",
+    "build": "vite build && node scripts/copy-deploy-files.mjs && node scripts/copy-licenses.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.e2e.json --noEmit",
     "lint": "eslint . --max-warnings 0 --report-unused-disable-directives",

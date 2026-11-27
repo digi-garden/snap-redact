@@ -1,10 +1,11 @@
-# アーキテクチャ設計書：Snap-Redact（MVP）v1.2
+# アーキテクチャ設計書：Snap-Redact（MVP）v1.3
 
-最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2 ／ 関連：`docs/01-screen-design.md` v1.1、`docs/02-functional-design.md` v1.1
+最終更新：2026-11-27 ／ 対象要件：`docs/requirements.md` v1.2 ／ 関連：`docs/01-screen-design.md` v1.1、`docs/02-functional-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
 * v1.1（2026-11-22）：外部レビュー2回目を反映（作業用 Canvas を引数で渡す方式に統一、市松模様を CSS のグラデーションで描く、`_headers` の置き場所）
 * v1.2（2026-11-26）：S8 の実装に合わせ、CanvasStage の要素の構成を変更（選択枠は Canvas を差し込む要素の外に置く。5.2）
+* v1.3（2026-11-27）：S12 で追加したファイル（ファビコン、`copy-licenses.mjs`、`SECURITY.md`）を3章に反映
 
 基本設計の資料 3/6。ソースコードを「どう分け、どこに何を書き、何に依存してよいか」を定める。機能の振る舞いは 02、外部通信の禁止など安全面の仕組みは 04 で扱う。
 
@@ -45,9 +46,12 @@ snap-redact/
 │  ├─ _headers                 // CSP などのレスポンスヘッダー（04）
 │  └─ _redirects               // / → /snap-redact/
 ├─ public/
-│  └─ favicon.svg              // brand-assets から取り込み
+│  ├─ favicon.svg              // brand-assets の assets/symbol/favicon をそのまま取り込み
+│  ├─ favicon-32.png
+│  └─ apple-touch-icon.png     // favicon-180.png
 ├─ scripts/
 │  ├─ copy-deploy-files.mjs    // deploy/ の中身を dist/ 直下へコピー
+│  ├─ copy-licenses.mjs        // 第三者のライセンスの原文と一覧を dist/snap-redact/third-party-licenses/ へ（04 の 2.3.1）
 │  └─ check-dist.mjs           // ビルド成果物の検査（04・05）
 ├─ src/
 │  ├─ main.tsx                 // エントリ。App を描画するだけ

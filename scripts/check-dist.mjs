@@ -4,6 +4,7 @@
 //   2. JS・CSS・HTML・SVG に、許可していない http(s):// / ws(s):// の URL がある
 //   3. HTML・SVG に <script> がある（HTML は src のないインラインのもの）。HTML にインラインの <style> がある
 //   4. CSS・HTML・SVG に data: URI の埋め込みがある
+//   5. 第三者のライセンスの一覧（snap-redact/third-party-licenses/index.html）がない
 // プロトコル相対の URL（//example.com）は、JS のコメント（//）と区別できず誤検知が多いため対象外。実行時は CSP が止める。
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -63,6 +64,11 @@ export function checkDist(distDir) {
   }
   if (!existsSync(join(distDir, 'snap-redact', 'index.html'))) {
     errors.push('snap-redact/index.html がありません（出力先の設定漏れ）');
+  }
+  if (!existsSync(join(distDir, 'snap-redact', 'third-party-licenses', 'index.html'))) {
+    errors.push(
+      'snap-redact/third-party-licenses/index.html がありません（copy-licenses の実行漏れ）',
+    );
   }
 
   if (!existsSync(distDir)) return errors;
