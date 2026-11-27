@@ -198,3 +198,61 @@ test('ドラッグ中の Esc で破棄すると、何も記録しない', async 
   await expect(undoButton(page)).toBeDisabled();
   expect(await hashCanvas(page)).toBe(original);
 });
+
+/** PNG のチャンクの種類を順に返す（メタデータが入っていないかの確認用） */
+function pngChunkTypes(buf: Buffer): string[] {
+  const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  expect([...buf.subarray(0, 8)]).toEqual(signature);
+  const types: string[] = [];
+  let offset = 8;
+  while (offset + 8 <= buf.length) {
+    const length = buf.readUInt32BE(offset);
+    types.push(buf.toString('ascii', offset + 4, offset + 8));
+    offset += 12 + length;
+  }
+  return types;
+}
+
+test('ダウンロード：redacted_image.png で、画面と同じ画素、メタデータなし', async ({ page }) => {
+  await loadImage(page, 900, 500, 'text-on-white');
+  await dragOnImage(page, { x: 90, y: 130 }, { x: 850, y: 230 });
+  await expect(undoButton(page)).toBeEnabled();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: /ダウンロード/ }).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('redacted_image.png');
+  await expect(
+    page.getByRole('button', { name: 'redacted_image.png を保存しました' }),
+  ).toBeVisible(); // トースト
+
+  const path = await download.path();
+  const { readFile } = await import('node:fs/promises');
+  const file = await readFile(path);
+
+  // 画像の本体以外のチャンク（tEXt・iTXt・zTXt・eXIf など）がない
+  const types = pngChunkTypes(file);
+  expect(types[0]).toBe('IHDR');
+  expect(types.at(-1)).toBe('IEND');
+  expect(
+    types.filter((t) => !['IHDR', 'IDAT', 'IEND', 'sRGB', 'gAMA', 'cHRM', 'pHYs'].includes(t)),
+  ).toEqual([]);
+
+  // 保存したファイルをデコードし、画面の Canvas と画素が一致する
+  const same = await page.locator('main canvas').evaluate(async (c: HTMLCanvasElement, b64) => {
+    const bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0));
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+    const check = document.createElement('canvas');
+    check.width = bitmap.width;
+    check.height = bitmap.height;
+    const g = check.getContext('2d')!;
+    g.drawImage(bitmap, 0, 0);
+    const a = g.getImageData(0, 0, check.width, check.height).data;
+    const b = c.getContext('2d')!.getImageData(0, 0, c.width, c.height).data;
+    if (check.width !== c.width || check.height !== c.height) return 'size';
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return `diff at ${i}`;
+    return 'same';
+  }, file.toString('base64'));
+  expect(same).toBe('same');
+});

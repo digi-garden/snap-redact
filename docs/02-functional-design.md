@@ -1,8 +1,9 @@
-# 機能設計書：Snap-Redact（MVP）v1.6
+# 機能設計書：Snap-Redact（MVP）v1.7
 
 最終更新：2026-11-26 ／ 対象要件：`docs/requirements.md` v1.2（確定版） ／ 関連：`docs/01-screen-design.md` v1.1
 
 * v1.0（2026-11-22）：初版
+* v1.7（2026-11-27）：S11 の実装に合わせ、ダウンロード後に Blob URL を解放するまでの時間を変更（3.12）
 * v1.6（2026-11-26）：S10 の実装に合わせ、Undo の描き直しに失敗したときの扱いを変更（3.8・3.9）
 * v1.5（2026-11-26）：S9 の実装に合わせ、操作は「描けたら記録する」順に変更（3.6）。ダイアログ表示中の `Esc` はダイアログ自身が閉じることを明記（4章）
 * v1.4（2026-11-26）：S8 の実装で見つけた `toRect` の判定の抜けを修正（画像の完全に外側で幅・高さが負になる場合。3.5.2）
@@ -375,11 +376,14 @@ async function copyImage(canvas: HTMLCanvasElement): Promise<'ok' | 'unsupported
 canvas.toBlob(cb, 'image/png')
   ├─ null → TS-05、終了
   └─ Blob → URL.createObjectURL → <a download="redacted_image.png"> を作ってクリック
-            → 次のタスクで URL.revokeObjectURL → EXPORTED を発行 → TS-08
+            → 1秒後に URL.revokeObjectURL → EXPORTED を発行 → TS-08
 ```
 
 * Canvas から書き出すので、元画像の EXIF などのメタデータは出力に含まれない（OUT-4）
 * 出力は常に PNG。透過はそのまま残る
+* Blob URL は、保存が始まる前に解放するとブラウザによっては保存に失敗するため、1秒待ってから解放する（S11 で「次のタスク」から変更）
+* リンクは文書に一度追加してからクリックし、すぐ取り除く（文書に入っていないリンクのクリックを無視するブラウザがあるため）
+* ボタンと `Ctrl+C` のコピーは同じ処理を呼ぶ。ドラッグ中はコピーもダウンロードもしない
 
 ### 3.13 F-12 通知（トースト）
 
