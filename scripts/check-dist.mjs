@@ -18,7 +18,8 @@ export const ALLOWED_URLS = [
   /^http:\/\/www\.w3\.org\/(1998\/Math\/MathML|1999\/xlink|1999\/xhtml|2000\/svg|XML\/1998\/namespace)$/, // 名前空間の識別子
   /^https:\/\/react\.dev\/errors(\/\d+)?\/?$/, // React の本番ビルドのエラーメッセージ
   /^https:\/\/tailwindcss\.com\/?$/, // Tailwind のライセンスコメント
-  /^https:\/\/circle-note\.com(\/|$)/, // フッターのリンク
+  /^https:\/\/circle-note\.com(\/|$)/, // ヘッダー・フッターのリンク
+  /^https:\/\/digi-garden\.com\/((terms|privacy)\/)?$/, // フッターの提供元・利用規約・プライバシーポリシー
   /^https:\/\/github\.com\/digi-garden(\/|$)/, // フッター・確認ダイアログのリンク
   // DL-02 の説明文に表示するコード例 fetch('https://example.com')。例示用に予約されたドメイン（RFC 2606）で、
   // 実行するのは利用者が Console で試すときだけ（そのとき CSP がブロックすることを見せるためのもの）

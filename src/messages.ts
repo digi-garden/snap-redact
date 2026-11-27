@@ -39,12 +39,23 @@ export const messages = {
     notLoaded: '画像が読み込まれていません',
   },
 
+  /** CircleNote の共通シェル（brand-assets の templates/circlenote） */
+  brand: 'CircleNote',
+
   footer: {
+    toolsLabel: 'CircleNoteの他のツール',
     maskUnmaskLead: 'テキストの機密を隠すなら →',
     maskUnmask: 'Mask & Unmask',
+    contextPacker: 'Context-Packer',
+    vramCalculator: 'VRAM Calculator',
+    policyLabel: '利用規約・プライバシー等',
+    terms: '利用規約',
+    privacy: 'プライバシーポリシー',
     github: 'GitHub',
     disclaimer: '隠し漏れの最終確認は利用者が行ってください',
-    copyright: '© digi-garden',
+    by: 'by',
+    provider: 'digi-garden',
+    copyright: '© 2026 digi-garden',
   },
 
   /** トースト（docs/01 の 5.1） */

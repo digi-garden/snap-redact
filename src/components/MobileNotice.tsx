@@ -11,14 +11,14 @@ export function MobileNotice({ onClose }: Props) {
   return (
     <div
       role="note"
-      className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-800 bg-stone-900 py-1 pr-1 pl-4 text-[13px] text-amber-400"
+      className="flex shrink-0 items-center justify-between gap-2 border-b border-cn-border bg-cn-surface py-1 pr-1 pl-4 text-[13px] text-cn-warning"
     >
       <span>{messages.mobileNotice}</span>
       <button
         type="button"
         onClick={onClose}
         aria-label={messages.mobileNoticeClose}
-        className={`inline-flex size-11 shrink-0 items-center justify-center rounded text-zinc-400 hover:text-zinc-200 ${focusRing}`}
+        className={`inline-flex size-11 shrink-0 items-center justify-center rounded text-cn-text-muted hover:text-cn-text ${focusRing}`}
       >
         <CloseIcon />
       </button>

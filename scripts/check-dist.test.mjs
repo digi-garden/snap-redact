@@ -96,6 +96,17 @@ describe('checkDist', () => {
     expect(checkDist(dist)).toEqual([]);
   });
 
+  it('digi-garden.com はトップ・利用規約・プライバシーポリシーだけ許可する', () => {
+    makeGoodDist();
+    put(
+      'snap-redact/assets/footer.js',
+      'const a="https://digi-garden.com/";const b="https://digi-garden.com/terms/";const c="https://digi-garden.com/privacy/";',
+    );
+    expect(checkDist(dist)).toEqual([]);
+    put('snap-redact/assets/x.js', 'const a="https://digi-garden.com/collect?x=1";');
+    expect(checkDist(dist).join()).toMatch(/digi-garden\.com\/collect/);
+  });
+
   it('似た名前のドメインは許可しない', () => {
     makeGoodDist();
     put('snap-redact/assets/x.js', 'const a="https://circle-note.com.evil.example/";');
