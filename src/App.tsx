@@ -228,7 +228,7 @@ export function App() {
         />
       </div>
       <UsageGuide keys={keys} />
-      <Footer />
+      <Footer onOpenSafety={() => setVerifyOpen(true)} />
       <Toast toast={toast} onDismiss={dismiss} />
       <ConfirmReplaceDialog
         open={loader.replacePending}

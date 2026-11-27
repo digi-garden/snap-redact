@@ -9,5 +9,10 @@ describe('UsageGuide', () => {
     expect(screen.getByRole('heading', { level: 2, name: messages.guide.title })).toBeTruthy();
     expect(screen.getAllByRole('listitem')[0]?.textContent).toContain('⌘+V');
     expect(screen.getAllByRole('term')).toHaveLength(messages.guide.faq.length);
+    // 要件 UI-5 の Mask & Unmask への導線と GitHub はここに置く
+    expect(screen.getByRole('link', { name: messages.guide.maskUnmask }).getAttribute('href')).toBe(
+      'https://circle-note.com/mask-unmask/',
+    );
+    expect(screen.getByRole('link', { name: messages.guide.source })).toBeTruthy();
   });
 });

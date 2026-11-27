@@ -43,6 +43,8 @@ export const messages = {
   guide: {
     title: 'Snap-Redact の用途・使い方・よくある質問',
     useCaseTitle: '主な用途・使用例',
+    maskUnmaskLead: 'テキストの機密を隠すなら →',
+    maskUnmask: 'Mask & Unmask',
     useCase:
       'Slack・GitHub の Issue・生成 AI などにスクリーンショットを貼る前に、写り込んだメールアドレス・API キー・顧客名・社内の URL などを黒塗りやモザイクで隠せます。画像の読み込みから書き出しまで、ブラウザの中だけで処理します。',
     stepsTitle: '最短の利用手順',
@@ -54,11 +56,13 @@ export const messages = {
     notesTitle: '利用上の注意点',
     notes: [
       '文字や数字には黒塗りを使ってください。モザイクは、文字の大きさや種類によっては推測・復元されることがあります。',
-      '貼り付ける前に、隠し漏れがないかを目で確かめてください。',
+      '隠し漏れの最終確認は利用者が行ってください。貼り付ける前に、出力を目で確かめてください。',
       'ブラウザの拡張機能はページの内容を読めるため、この仕組みでは防げません。信頼できない拡張機能は無効にしてお使いください。',
       'ページを閉じたり再読み込みしたりすると、編集中の画像は消えます（どこにも保存しません）。',
     ],
     faqTitle: 'よくある質問（FAQ）',
+    sourceLead: 'ソースコード：',
+    source: 'github.com/digi-garden/snap-redact',
     faq: [
       {
         q: 'Q. 画像はサーバーへ送信されますか？',
@@ -90,16 +94,14 @@ export const messages = {
 
   footer: {
     toolsLabel: 'CircleNoteの他のツール',
-    maskUnmaskLead: 'テキストの機密を隠すなら →',
     maskUnmask: 'Mask & Unmask',
     contextPacker: 'Context-Packer',
     vramCalculator: 'VRAM Calculator',
     policyLabel: '利用規約・プライバシー等',
+    safety: '安全性とプライバシー',
     licenses: 'OSSライセンス',
     terms: '利用規約',
     privacy: 'プライバシーポリシー',
-    github: 'GitHub',
-    disclaimer: '隠し漏れの最終確認は利用者が行ってください',
     by: 'by',
     provider: 'digi-garden',
     copyright: '© 2026 digi-garden',
