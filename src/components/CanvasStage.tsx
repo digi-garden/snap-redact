@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { messages } from '../messages';
+import { container as pageContainer } from './styles';
 
 type Props = {
   /** 表示用 Canvas（useImageLoader が用意したもの）。未読み込みなら null */
@@ -21,7 +22,7 @@ type Props = {
  * - タッチでもドラッグで矩形を指定できるよう、スクロールなどの既定の操作を止める（docs/01 の 6章）
  */
 const HOST_CLASS =
-  'flex h-full w-full items-center justify-center [&>canvas]:block [&>canvas]:max-h-full [&>canvas]:max-w-full [&>canvas]:cursor-crosshair [&>canvas]:touch-none [&>canvas]:select-none [&>canvas]:bg-[repeating-conic-gradient(var(--color-zinc-800)_0_25%,var(--color-zinc-900)_0_50%)] [&>canvas]:bg-size-[16px_16px] [&>canvas]:shadow-lg [&>canvas]:shadow-black/40';
+  'flex h-full w-full items-center justify-center [&>canvas]:block [&>canvas]:max-h-full [&>canvas]:max-w-full [&>canvas]:cursor-crosshair [&>canvas]:touch-none [&>canvas]:select-none [&>canvas]:bg-[repeating-conic-gradient(var(--color-cn-surface)_0_25%,var(--color-cn-bg)_0_50%)] [&>canvas]:bg-size-[16px_16px] [&>canvas]:shadow-lg [&>canvas]:shadow-black/40';
 
 /**
  * キャンバス領域（docs/01 の 3.3、docs/03 の 5.2）。
@@ -42,20 +43,23 @@ export function CanvasStage({ canvas, empty, dropping, selection }: Props) {
 
   return (
     // 高さが足りないときは中でスクロールする。中央寄せは子の m-auto で行う（items-center だと上側が切れてスクロールできないため）
-    <main className="relative flex min-h-0 flex-1 overflow-auto p-4 sm:p-6">
-      {canvas ? (
-        <div role="img" aria-label={messages.canvasLabel} className="relative h-full w-full">
-          <div ref={container} className={HOST_CLASS} />
-          {selection}
-        </div>
-      ) : (
-        empty
-      )}
+    <main className="relative flex min-h-0 flex-1 overflow-auto py-4 sm:py-6">
+      {/* 横幅はヘッダー・フッターとそろえる（CircleNote ガイドライン 4章） */}
+      <div className={`${pageContainer} flex h-full`}>
+        {canvas ? (
+          <div role="img" aria-label={messages.canvasLabel} className="relative h-full w-full">
+            <div ref={container} className={HOST_CLASS} />
+            {selection}
+          </div>
+        ) : (
+          empty
+        )}
+      </div>
       {dropping && (
         // ファイルを重ねているとき（キャンバスの外に重ねても同じ。docs/01 の 3.3）
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-3 flex items-center justify-center rounded-xl border-2 border-dashed border-emerald-500 bg-emerald-500/10 text-lg font-semibold text-emerald-300"
+          className="pointer-events-none absolute inset-3 flex items-center justify-center rounded-xl border-2 border-dashed border-cn-accent bg-cn-accent/10 text-lg font-semibold text-cn-link"
         >
           {messages.dropHere}
         </div>

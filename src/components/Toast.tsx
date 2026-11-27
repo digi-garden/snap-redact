@@ -7,11 +7,15 @@ type Props = {
   onDismiss: () => void;
 };
 
-const iconColor = { success: 'text-emerald-400', info: 'text-zinc-300', error: 'text-red-400' };
+const iconColor = {
+  success: 'text-cn-success',
+  info: 'text-cn-text-muted',
+  error: 'text-cn-error',
+};
 const borderColor = {
-  success: 'border-emerald-500',
-  info: 'border-zinc-600',
-  error: 'border-red-400',
+  success: 'border-cn-accent-border',
+  info: 'border-cn-border-strong',
+  error: 'border-cn-error',
 };
 
 /**
@@ -34,7 +38,7 @@ export function Toast({ toast, onDismiss }: Props) {
           type="button"
           onClick={onDismiss}
           aria-label={`${toast.text}（${messages.toast.close}）`}
-          className={`pointer-events-auto fixed bottom-24 left-1/2 z-10 flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-lg border bg-zinc-900 px-4 py-2.5 text-left text-sm text-zinc-100 shadow-xl shadow-black/50 ${borderColor[toast.kind]} ${focusRing}`}
+          className={`pointer-events-auto fixed bottom-24 left-1/2 z-10 flex max-w-[calc(100vw-32px)] -translate-x-1/2 items-center gap-2 rounded-lg border bg-cn-surface px-4 py-2.5 text-left text-sm text-cn-text shadow-xl shadow-black/50 ${borderColor[toast.kind]} ${focusRing}`}
         >
           <span aria-hidden="true" className={iconColor[toast.kind]}>
             {toast.kind === 'error' ? '!' : toast.kind === 'success' ? '✓' : 'i'}

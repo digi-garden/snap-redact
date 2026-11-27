@@ -26,25 +26,25 @@ export function EmptyState({ keys, mobileLike, onFile }: Props) {
   );
 
   return (
-    <div className="m-auto flex h-full max-h-[380px] min-h-fit w-full max-w-[760px] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-zinc-700 p-6 text-center">
-      <ImageIcon className="text-zinc-500" />
+    <div className="m-auto flex h-full max-h-[380px] min-h-fit w-full max-w-[760px] flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed border-cn-border-strong p-6 text-center">
+      <ImageIcon className="text-cn-text-subtle" />
       {mobileLike ? (
         choose
       ) : (
         <>
           <p className="text-xl font-semibold">
-            <kbd className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-0.5 font-mono text-[17px]">
+            <kbd className="rounded-md border border-cn-border-strong bg-cn-surface px-2 py-0.5 font-mono text-[17px]">
               {messages.empty.pasteKey(keys)}
             </kbd>{' '}
             {messages.empty.pasteTitle}
           </p>
-          <p className="flex flex-wrap items-center justify-center gap-2 text-zinc-400">
+          <p className="flex flex-wrap items-center justify-center gap-2 text-cn-text-muted">
             {messages.empty.dropOr}
             {choose}
           </p>
         </>
       )}
-      <p className="mt-4 text-xs text-zinc-400">{messages.empty.privacy}</p>
+      <p className="mt-4 text-xs text-cn-text-muted">{messages.empty.privacy}</p>
       <input
         ref={input}
         type="file"

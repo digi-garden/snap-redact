@@ -19,15 +19,6 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
-export function LogoIcon({ size = 24, className }: IconProps) {
-  // 仮のロゴ。S12 で brand-assets の CircleNote ロゴに差し替える
-  return (
-    <svg {...base(size)} className={className} fill="none" stroke="#10B981" strokeWidth={2.5}>
-      <circle cx="12" cy="12" r="9" />
-    </svg>
-  );
-}
-
 export function ShieldIcon({ size = 16, className }: IconProps) {
   return (
     <svg {...base(size)} {...stroke} className={className}>

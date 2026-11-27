@@ -14,7 +14,7 @@ type Props = {
 /** 内側の色：黒塗りは黒 40%、モザイクはアクセントカラー 15%（docs/01 の 3.3） */
 const FILL_CLASS: Record<Mode, string> = {
   fill: 'bg-black/40',
-  mosaic: 'bg-emerald-500/15',
+  mosaic: 'bg-cn-accent/15',
 };
 
 /**
@@ -43,7 +43,7 @@ export function SelectionOverlay({ canvas, rect, width, height, mode }: Props) {
       ref={ref}
       aria-hidden="true"
       data-testid="selection"
-      className={`pointer-events-none absolute border-2 border-emerald-500 ${FILL_CLASS[mode]}`}
+      className={`pointer-events-none absolute border-2 border-cn-accent ${FILL_CLASS[mode]}`}
     />
   );
 }

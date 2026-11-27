@@ -1,28 +1,38 @@
 import { messages } from '../messages';
-import { focusRing } from './styles';
-import { LogoIcon } from './icons';
 import { NoNetworkBadge } from './NoNetworkBadge';
+import { container, focusRing } from './styles';
 
 type Props = {
   compact: boolean;
   onOpenVerify: () => void;
 };
 
-/** ヘッダー（docs/01 の 3.1） */
+/**
+ * ヘッダー（docs/01 の 3.1）。CircleNote の共通シェル（brand-assets の CircleNoteHeader）に合わせる：
+ * 左に「CircleNote / ツール名（h1）」と1行の説明、右にバッジ。
+ * バッジは共通の見た目にそろえつつ、押すと確かめ方（DL-02）が開く Snap-Redact の機能を残す。
+ */
 export function Header({ compact, onOpenVerify }: Props) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-zinc-800 bg-zinc-900 px-4 sm:px-6">
-      <div className="flex min-w-0 items-center gap-4">
-        <a
-          href="https://circle-note.com/"
-          className={`flex items-center gap-2.5 rounded text-zinc-100 no-underline ${focusRing}`}
-        >
-          <LogoIcon />
-          <span className="text-base font-bold">{messages.appName}</span>
-        </a>
-        {!compact && <span className="truncate text-[13px] text-zinc-400">{messages.tagline}</span>}
+    <header className="shrink-0 border-b border-cn-border bg-cn-bg py-3 sm:py-4">
+      <div className={`${container} flex flex-wrap items-center justify-between gap-x-5 gap-y-2`}>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="https://circle-note.com/"
+              className={`rounded-sm font-semibold text-cn-text hover:text-cn-link ${focusRing}`}
+            >
+              {messages.brand}
+            </a>
+            <span className="text-cn-border-strong" aria-hidden="true">
+              /
+            </span>
+            <h1 className="text-base font-semibold text-cn-text">{messages.appName}</h1>
+          </div>
+          {!compact && <p className="mt-0.5 text-xs text-cn-text-muted">{messages.tagline}</p>}
+        </div>
+        <NoNetworkBadge compact={compact} onClick={onOpenVerify} />
       </div>
-      <NoNetworkBadge compact={compact} onClick={onOpenVerify} />
     </header>
   );
 }
