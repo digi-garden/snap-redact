@@ -231,13 +231,12 @@ test('ダウンロード：redacted_image.png で、画面と同じ画素、メ�
   const { readFile } = await import('node:fs/promises');
   const file = await readFile(path);
 
-  // 画像の本体以外のチャンク（tEXt・iTXt・zTXt・eXIf など）がない
+  // 撮影情報・位置・文字列などのメタデータを入れるチャンクがない。
+  // 色や画素の形式を表すチャンク（sRGB・pHYs や、WebKit が付ける sBIT など）は個人の情報を含まないので許す
   const types = pngChunkTypes(file);
   expect(types[0]).toBe('IHDR');
   expect(types.at(-1)).toBe('IEND');
-  expect(
-    types.filter((t) => !['IHDR', 'IDAT', 'IEND', 'sRGB', 'gAMA', 'cHRM', 'pHYs'].includes(t)),
-  ).toEqual([]);
+  expect(types.filter((t) => ['tEXt', 'iTXt', 'zTXt', 'eXIf', 'tIME'].includes(t))).toEqual([]);
 
   // 保存したファイルをデコードし、画面の Canvas と画素が一致する
   const same = await page.locator('main canvas').evaluate(async (c: HTMLCanvasElement, b64) => {
