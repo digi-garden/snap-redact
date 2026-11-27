@@ -25,13 +25,15 @@ import type { Op, Rect } from './lib/core/types';
 import { applyOp } from './lib/canvas/applyOp';
 import { renderAll } from './lib/canvas/renderAll';
 import { releaseCanvas } from './lib/canvas/prepareCanvas';
+import { copyImage } from './lib/browser/copyImage';
+import { downloadImage } from './lib/browser/downloadImage';
 import { messages } from './messages';
 
 /**
  * 画面全体（docs/01-screen-design.md 2章）。
  * 編集状態は editorReducer で持つ（docs/02 の 2.2）。
- * S10 まで：読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）、矩形の黒塗り・モザイク、元に戻す・クリア、
- * キー操作（B・M・Esc・Ctrl+Z）。出力（Ctrl+C を含む）は S11。
+ * 読み込み（貼り付け・ファイル選択・ドロップ、差し替えの確認）、矩形の黒塗り・モザイク、元に戻す・クリア、
+ * コピー・ダウンロード、キー操作（B・M・Esc・Ctrl+Z・Ctrl+C）。
  */
 export function App() {
   const { keys, mobileLike } = usePlatform();
@@ -124,7 +126,33 @@ export function App() {
     releaseWork();
   }, [isDragging, loader, releaseWork]);
 
-  // キー操作（docs/02 の 4章）。Ctrl+C は S11 で登録する
+  // コピー（docs/02 の 3.11）：ボタンのクリック・Ctrl+C の keydown の中で、await を挟まずに copyImage を呼ぶ
+  const copy = useCallback(() => {
+    if (!canvas || editor.status !== 'loaded' || isDragging) return;
+    void copyImage(canvas).then((result) => {
+      if (result === 'ok') {
+        dispatch({ type: 'EXPORTED' });
+        showToast('success', messages.toast.copied);
+      } else {
+        showToast('error', messages.toast.copyFailed);
+      }
+    });
+  }, [canvas, editor.status, isDragging, showToast]);
+
+  // ダウンロード（docs/02 の 3.12）
+  const download = useCallback(() => {
+    if (!canvas || editor.status !== 'loaded' || isDragging) return;
+    void downloadImage(canvas).then((result) => {
+      if (result === 'ok') {
+        dispatch({ type: 'EXPORTED' });
+        showToast('success', messages.toast.downloaded);
+      } else {
+        showToast('error', messages.toast.cannotProcess);
+      }
+    });
+  }, [canvas, editor.status, isDragging, showToast]);
+
+  // キー操作（docs/02 の 4章）
   useShortcuts({
     isModalOpen,
     isDragging,
@@ -133,6 +161,7 @@ export function App() {
     handlers: {
       cancelDrag: rectDrag.cancel,
       undo,
+      copy,
       modeFill: () => dispatch({ type: 'SET_MODE', mode: 'fill' }),
       modeMosaic: () => dispatch({ type: 'SET_MODE', mode: 'mosaic' }),
     },
@@ -143,8 +172,6 @@ export function App() {
     onImage: loadFile,
     onNoImage: notifyNoImage,
   });
-
-  const noop = () => undefined;
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
@@ -188,8 +215,8 @@ export function App() {
             ? messages.imageInfo(editor.width, editor.height, editor.ops.length)
             : null
         }
-        onCopy={noop}
-        onDownload={noop}
+        onCopy={copy}
+        onDownload={download}
         keys={keys}
         showKeyHints={!mobileLike}
       />
